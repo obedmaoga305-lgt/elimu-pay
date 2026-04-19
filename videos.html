@@ -240,7 +240,7 @@
 </div>
 
 <script>
-  const API ='https://elimu-pay.onrender.com';
+  const API = 'https://elimu-pay.onrender.com';
 
   // Auth check
   const token = localStorage.getItem('token');
@@ -320,7 +320,7 @@
     const filtered = currentFilter === 'all' ? videos : videos.filter(v => v.subject === currentFilter);
     const grid = document.getElementById('video-grid');
     grid.innerHTML = filtered.map(v => `
-      <div class="video-card" onclick="playVideo('${v.youtubeId}','${v.title.replace(/'/g, "\\'")}')">
+      <div class="video-card" onclick="playVideo('${v.youtubeId}','${v.title.replace(/'/g, "\'")}')">
         <div class="video-thumb" style="background:${v.thumb_color}">
           <div class="play-overlay">
             <div class="play-btn">▶</div>
