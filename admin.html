@@ -190,7 +190,7 @@
     <!-- PAYMENTS -->
     <div class="section">
       <div class="section-header">
-        <h3>💰 Payment History</h3>
+        <h3>💳 Payments</h3>
         <span class="section-badge" id="payments-count">Loading...</span>
       </div>
       <div id="payments-table">
@@ -201,18 +201,14 @@
 </div>
 
 <script>
-  const API = 'https://your-backend.onrender.com'; // ← replace after backend deploy
-  const ADMIN_PASS_KEY = 'admin_token';
-
+  const ADMIN_PASS_KEY = 'adminToken';
+  const API = window.location.origin; // Automatically uses current domain
   let allAttempts = [];
   let currentAttemptFilter = 'all';
 
-  // Check if already logged in
-  if (sessionStorage.getItem(ADMIN_PASS_KEY)) showDashboard();
-
-  const API = window.location.origin;
+  async function adminLogin() {
     const pass = document.getElementById('admin-pass').value;
-    if (!pass) return;
+    if (!pass) return alert('Enter password');
 
     try {
       const res = await fetch(`${API}/api/admin/login`, {
@@ -228,6 +224,7 @@
       const err = document.getElementById('admin-err');
       err.textContent = e.message;
       err.classList.add('show');
+      console.error('Login error:', e);
     }
   }
 
@@ -267,7 +264,9 @@
       document.getElementById('stat-revenue').textContent = (d.successPayments || 0) * 10;
       document.getElementById('stat-failed').textContent = d.failedLoginsToday || 0;
       document.getElementById('stat-active').textContent = d.activeSessions || 0;
-    } catch {}
+    } catch (e) {
+      console.error('Stats error:', e);
+    }
   }
 
   async function loadAttempts() {
@@ -276,7 +275,8 @@
       allAttempts = await res.json();
       document.getElementById('attempts-count').textContent = `${allAttempts.length} total`;
       renderAttempts();
-    } catch {
+    } catch (e) {
+      console.error('Attempts error:', e);
       document.getElementById('attempts-table').innerHTML = '<div class="empty-state">Failed to load</div>';
     }
   }
@@ -311,8 +311,8 @@
               <td><strong>${a.username || '—'}</strong></td>
               <td><span class="ip-chip">${a.ip || 'Unknown'}</span></td>
               <td><span class="badge ${a.status === 'success' ? 'success' : 'failed'}">${a.status}</span></td>
-              <td style="color:var(--muted);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.userAgent || '—'}</td>
-              <td style="color:var(--muted);font-size:0.8rem">${formatDate(a.createdAt)}</td>
+              <td style="color:var(--muted);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.user_agent || '—'}</td>
+              <td style="color:var(--muted);font-size:0.8rem">${formatDate(a.created_at)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -341,13 +341,14 @@
                 <td><strong>${u.name}</strong></td>
                 <td>${u.username}</td>
                 <td><span class="badge ${u.hasAccess ? 'active' : 'expired'}">${u.hasAccess ? 'Active (' + u.minutesLeft + 'min left)' : 'Expired'}</span></td>
-                <td style="color:var(--muted);font-size:0.8rem">${formatDate(u.createdAt)}</td>
+                <td style="color:var(--muted);font-size:0.8rem">${formatDate(u.created_at)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
-    } catch {
+    } catch (e) {
+      console.error('Users error:', e);
       document.getElementById('users-table').innerHTML = '<div class="empty-state">Failed to load</div>';
     }
   }
@@ -373,15 +374,16 @@
                 <td><strong>${p.username}</strong></td>
                 <td><span class="ip-chip">${p.phone}</span></td>
                 <td style="font-weight:600;color:var(--green)">KSh ${p.amount}</td>
-                <td style="font-family:monospace;font-size:0.8rem">${p.mpesaRef || '—'}</td>
+                <td style="font-family:monospace;font-size:0.8rem">${p.mpesa_ref || '—'}</td>
                 <td><span class="badge ${p.status === 'paid' ? 'success' : 'failed'}">${p.status}</span></td>
-                <td style="color:var(--muted);font-size:0.8rem">${formatDate(p.createdAt)}</td>
+                <td style="color:var(--muted);font-size:0.8rem">${formatDate(p.created_at)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
-    } catch {
+    } catch (e) {
+      console.error('Payments error:', e);
       document.getElementById('payments-table').innerHTML = '<div class="empty-state">Failed to load</div>';
     }
   }
