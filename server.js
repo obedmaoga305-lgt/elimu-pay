@@ -11,15 +11,6 @@ app.use(express.json());
 app.use(cors({ origin: '*' })); // restrict to your netlify domain in production
 
 // ──────────────────────────────────────────────
-// SERVE STATIC FILES
-// ──────────────────────────────────────────────
-app.use(express.static('.')); // Serve all files from current directory
-
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
-
-// ──────────────────────────────────────────────
 // SUPABASE
 // ──────────────────────────────────────────────
 const supabase = createClient(
@@ -353,6 +344,15 @@ app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
     .limit(500);
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
+});
+
+// ──────────────────────────────────────────────
+// SERVE STATIC FILES (AFTER ALL API ROUTES)
+// ──────────────────────────────────────────────
+app.use(express.static('.')); // Serve all files from current directory
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
 });
 
 // ──────────────────────────────────────────────
