@@ -11,6 +11,15 @@ app.use(express.json());
 app.use(cors({ origin: '*' })); // restrict to your netlify domain in production
 
 // ──────────────────────────────────────────────
+// SERVE STATIC FILES
+// ──────────────────────────────────────────────
+app.use(express.static('.')); // Serve all files from current directory
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
+});
+
+// ──────────────────────────────────────────────
 // SUPABASE
 // ──────────────────────────────────────────────
 const supabase = createClient(
