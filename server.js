@@ -1,0 +1,353 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+const { createClient } = require('@supabase/supabase-js');
+
+const app = express();
+app.use(express.json());
+app.use(cors({ origin: '*' })); // restrict to your netlify domain in production
+
+// ──────────────────────────────────────────────
+// SUPABASE
+// ──────────────────────────────────────────────
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY // use service key (not anon) for backend
+);
+
+// ──────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────
+function getIP(req) {
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
+}
+
+function signToken(payload) {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+}
+
+function verifyToken(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+function verifyAdmin(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    req.admin = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid admin token' });
+  }
+}
+
+async function checkUserAccess(userId) {
+  const { data } = await supabase
+    .from('sessions')
+    .select('expires_at')
+    .eq('user_id', userId)
+    .gt('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: false })
+    .limit(1)
+    .single();
+  return data ? { hasAccess: true, expiresAt: data.expires_at } : { hasAccess: false };
+}
+
+// ──────────────────────────────────────────────
+// M-PESA HELPERS
+// ──────────────────────────────────────────────
+async function getMpesaToken() {
+  const auth = Buffer.from(
+    `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
+  ).toString('base64');
+
+  const { data } = await axios.get(
+    'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+    // Use production URL: 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+    { headers: { Authorization: `Basic ${auth}` } }
+  );
+  return data.access_token;
+}
+
+async function stkPush({ phone, amount, checkoutRequestId }) {
+  const token = await getMpesaToken();
+  const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
+  const shortcode = process.env.MPESA_SHORTCODE;
+  const passkey = process.env.MPESA_PASSKEY;
+  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+
+  const { data } = await axios.post(
+    'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+    // Use production URL: 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+    {
+      BusinessShortCode: shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: amount,
+      PartyA: phone,
+      PartyB: shortcode,
+      PhoneNumber: phone,
+      CallBackURL: `${process.env.BACKEND_URL}/api/pay/callback`,
+      AccountReference: 'ElimuPay',
+      TransactionDesc: '30min Video Access'
+    },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return data;
+}
+
+// ──────────────────────────────────────────────
+// ROUTES: AUTH
+// ──────────────────────────────────────────────
+
+// REGISTER
+app.post('/api/register', async (req, res) => {
+  const { name, username, password } = req.body;
+  if (!name || !username || !password) return res.status(400).json({ error: 'All fields required' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password too short' });
+
+  const { data: existing } = await supabase
+    .from('users').select('id').eq('username', username.toLowerCase()).single();
+  if (existing) return res.status(409).json({ error: 'Username already taken' });
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const { error } = await supabase.from('users').insert({
+    name,
+    username: username.toLowerCase(),
+    password: hashedPassword
+  });
+  if (error) return res.status(500).json({ error: 'Registration failed' });
+
+  res.json({ message: 'Account created successfully' });
+});
+
+// LOGIN
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const ip = getIP(req);
+  const userAgent = req.headers['user-agent'] || '';
+
+  if (!username || !password) return res.status(400).json({ error: 'All fields required' });
+
+  const { data: user } = await supabase
+    .from('users').select('*').eq('username', username.toLowerCase()).single();
+
+  const success = user && (await bcrypt.compare(password, user.password));
+
+  // Log the attempt
+  await supabase.from('login_attempts').insert({
+    username: username.toLowerCase(),
+    ip,
+    user_agent: userAgent,
+    status: success ? 'success' : 'failed'
+  });
+
+  if (!success) return res.status(401).json({ error: 'Invalid username or password' });
+
+  const token = signToken({ userId: user.id, username: user.username });
+  const access = await checkUserAccess(user.id);
+
+  res.json({ token, hasAccess: access.hasAccess, expiresAt: access.expiresAt });
+});
+
+// CHECK ACCESS
+app.get('/api/check-access', verifyToken, async (req, res) => {
+  const access = await checkUserAccess(req.user.userId);
+  res.json(access);
+});
+
+// ──────────────────────────────────────────────
+// ROUTES: PAYMENT
+// ──────────────────────────────────────────────
+
+// INITIATE M-PESA PAYMENT
+app.post('/api/pay/initiate', verifyToken, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number required' });
+
+  try {
+    const result = await stkPush({ phone, amount: 10 });
+
+    if (result.ResponseCode !== '0') {
+      return res.status(400).json({ error: result.ResponseDescription || 'M-Pesa request failed' });
+    }
+
+    // Save pending payment
+    await supabase.from('payments').insert({
+      user_id: req.user.userId,
+      username: req.user.username,
+      phone,
+      amount: 10,
+      checkout_request_id: result.CheckoutRequestID,
+      status: 'pending'
+    });
+
+    res.json({
+      message: 'STK push sent',
+      checkoutRequestId: result.CheckoutRequestID
+    });
+  } catch (e) {
+    console.error('STK push error:', e.response?.data || e.message);
+    res.status(500).json({ error: 'Payment initiation failed. Try again.' });
+  }
+});
+
+// M-PESA CALLBACK (called by Safaricom servers)
+app.post('/api/pay/callback', async (req, res) => {
+  const body = req.body?.Body?.stkCallback;
+  if (!body) return res.sendStatus(200);
+
+  const checkoutRequestId = body.CheckoutRequestID;
+  const resultCode = body.ResultCode;
+
+  if (resultCode === 0) {
+    // Payment successful
+    const items = body.CallbackMetadata?.Item || [];
+    const getItem = name => items.find(i => i.Name === name)?.Value;
+    const mpesaRef = getItem('MpesaReceiptNumber');
+    const amount = getItem('Amount');
+
+    // Update payment record
+    await supabase.from('payments')
+      .update({ status: 'paid', mpesa_ref: mpesaRef, amount })
+      .eq('checkout_request_id', checkoutRequestId);
+
+    // Get user and grant 30-minute session
+    const { data: payment } = await supabase
+      .from('payments').select('user_id').eq('checkout_request_id', checkoutRequestId).single();
+
+    if (payment) {
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      await supabase.from('sessions').insert({
+        user_id: payment.user_id,
+        expires_at: expiresAt
+      });
+    }
+  } else {
+    // Payment failed/cancelled
+    await supabase.from('payments')
+      .update({ status: 'failed' })
+      .eq('checkout_request_id', checkoutRequestId);
+  }
+
+  res.sendStatus(200);
+});
+
+// POLL PAYMENT STATUS
+app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
+  const { checkoutRequestId } = req.params;
+  const { data } = await supabase
+    .from('payments').select('status').eq('checkout_request_id', checkoutRequestId).single();
+
+  if (!data) return res.status(404).json({ error: 'Payment not found' });
+
+  if (data.status === 'paid') {
+    const access = await checkUserAccess(req.user.userId);
+    return res.json({ status: 'paid', expiresAt: access.expiresAt });
+  }
+
+  res.json({ status: data.status });
+});
+
+// ──────────────────────────────────────────────
+// ROUTES: ADMIN
+// ──────────────────────────────────────────────
+
+// ADMIN LOGIN
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Wrong password' });
+  }
+  const adminToken = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
+  res.json({ adminToken });
+});
+
+// ADMIN: STATS
+app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [users, payments, failedToday, activeSessions] = await Promise.all([
+    supabase.from('users').select('id', { count: 'exact', head: true }),
+    supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+    supabase.from('login_attempts').select('id', { count: 'exact', head: true })
+      .eq('status', 'failed').gte('created_at', today.toISOString()),
+    supabase.from('sessions').select('id', { count: 'exact', head: true })
+      .gt('expires_at', new Date().toISOString())
+  ]);
+
+  res.json({
+    totalUsers: users.count || 0,
+    successPayments: payments.count || 0,
+    failedLoginsToday: failedToday.count || 0,
+    activeSessions: activeSessions.count || 0
+  });
+});
+
+// ADMIN: LOGIN ATTEMPTS
+app.get('/api/admin/attempts', verifyAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('login_attempts')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ADMIN: USERS
+app.get('/api/admin/users', verifyAdmin, async (req, res) => {
+  const { data: users, error } = await supabase
+    .from('users').select('id, name, username, created_at').order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Enrich with session status
+  const enriched = await Promise.all((users || []).map(async (u) => {
+    const { data: session } = await supabase
+      .from('sessions').select('expires_at').eq('user_id', u.id)
+      .gt('expires_at', new Date().toISOString()).order('expires_at', { ascending: false }).limit(1).single();
+    const hasAccess = !!session;
+    const minutesLeft = hasAccess
+      ? Math.max(0, Math.ceil((new Date(session.expires_at) - Date.now()) / 60000))
+      : 0;
+    return { ...u, hasAccess, minutesLeft };
+  }));
+
+  res.json(enriched);
+});
+
+// ADMIN: PAYMENTS
+app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ──────────────────────────────────────────────
+// START
+// ──────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`ElimuPay server running on port ${PORT}`));
