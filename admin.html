@@ -210,7 +210,7 @@
   // Check if already logged in
   if (sessionStorage.getItem(ADMIN_PASS_KEY)) showDashboard();
 
-  async function adminLogin() {
+  const API = window.location.origin;
     const pass = document.getElementById('admin-pass').value;
     if (!pass) return;
 
