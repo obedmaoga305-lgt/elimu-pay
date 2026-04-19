@@ -352,10 +352,11 @@ app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
 app.use(express.static('.')); // Serve static files (HTML, CSS, JS, etc)
 
 // Fallback: serve index.html for non-API client-side routes ONLY
-app.get(/^(?!\/api)/, (req, res) => {
-  // Only serve index.html if the file doesn't exist as a static file
-  res.sendFile(__dirname + '/index.html').catch(() => {
-    res.status(404).send('Not found');
+app.get(/^(?!.*\/api)/, (req, res) => {
+  res.sendFile(__dirname + '/index.html', (err) => {
+    if (err) {
+      res.status(404).send('Not found');
+    }
   });
 });
 
