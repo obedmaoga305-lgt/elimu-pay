@@ -349,10 +349,14 @@ app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
 // ──────────────────────────────────────────────
 // SERVE STATIC FILES (AFTER ALL API ROUTES)
 // ──────────────────────────────────────────────
-app.use(express.static('.')); // Serve all files from current directory
+app.use(express.static('.')); // Serve static files (HTML, CSS, JS, etc)
 
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+// Fallback: serve index.html for non-API client-side routes ONLY
+app.get(/^(?!\/api)/, (req, res) => {
+  // Only serve index.html if the file doesn't exist as a static file
+  res.sendFile(__dirname + '/index.html').catch(() => {
+    res.status(404).send('Not found');
+  });
 });
 
 // ──────────────────────────────────────────────
