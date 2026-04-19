@@ -5,17 +5,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: '*' })); // restrict to your netlify domain in production
+app.use(cors({ origin: '*' }));
 
 // ──────────────────────────────────────────────
 // SUPABASE
 // ──────────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY // use service key (not anon) for backend
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 // ──────────────────────────────────────────────
@@ -80,7 +81,6 @@ async function getMpesaToken() {
 
   const { data } = await axios.get(
     'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-    // Use production URL: 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     { headers: { Authorization: `Basic ${auth}` } }
   );
   return data.access_token;
@@ -95,7 +95,6 @@ async function stkPush({ phone, amount, checkoutRequestId }) {
 
   const { data } = await axios.post(
     'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-    // Use production URL: 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
     {
       BusinessShortCode: shortcode,
       Password: password,
@@ -120,58 +119,76 @@ async function stkPush({ phone, amount, checkoutRequestId }) {
 
 // REGISTER
 app.post('/api/register', async (req, res) => {
-  const { name, username, password } = req.body;
-  if (!name || !username || !password) return res.status(400).json({ error: 'All fields required' });
-  if (password.length < 6) return res.status(400).json({ error: 'Password too short' });
+  try {
+    const { name, username, password } = req.body;
+    if (!name || !username || !password) return res.status(400).json({ error: 'All fields required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password too short' });
 
-  const { data: existing } = await supabase
-    .from('users').select('id').eq('username', username.toLowerCase()).single();
-  if (existing) return res.status(409).json({ error: 'Username already taken' });
+    const { data: existing, error: checkError } = await supabase
+      .from('users').select('id').eq('username', username.toLowerCase()).single();
+    
+    if (checkError && checkError.code !== 'PGRST116') {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (existing) return res.status(409).json({ error: 'Username already taken' });
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const { error } = await supabase.from('users').insert({
-    name,
-    username: username.toLowerCase(),
-    password: hashedPassword
-  });
-  if (error) return res.status(500).json({ error: 'Registration failed' });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const { error } = await supabase.from('users').insert({
+      name,
+      username: username.toLowerCase(),
+      password: hashedPassword
+    });
+    if (error) return res.status(500).json({ error: 'Registration failed' });
 
-  res.json({ message: 'Account created successfully' });
+    res.json({ message: 'Account created successfully' });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // LOGIN
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const ip = getIP(req);
-  const userAgent = req.headers['user-agent'] || '';
+  try {
+    const { username, password } = req.body;
+    const ip = getIP(req);
+    const userAgent = req.headers['user-agent'] || '';
 
-  if (!username || !password) return res.status(400).json({ error: 'All fields required' });
+    if (!username || !password) return res.status(400).json({ error: 'All fields required' });
 
-  const { data: user } = await supabase
-    .from('users').select('*').eq('username', username.toLowerCase()).single();
+    const { data: user } = await supabase
+      .from('users').select('*').eq('username', username.toLowerCase()).single();
 
-  const success = user && (await bcrypt.compare(password, user.password));
+    const success = user && (await bcrypt.compare(password, user.password));
 
-  // Log the attempt
-  await supabase.from('login_attempts').insert({
-    username: username.toLowerCase(),
-    ip,
-    user_agent: userAgent,
-    status: success ? 'success' : 'failed'
-  });
+    await supabase.from('login_attempts').insert({
+      username: username.toLowerCase(),
+      ip,
+      user_agent: userAgent,
+      status: success ? 'success' : 'failed'
+    });
 
-  if (!success) return res.status(401).json({ error: 'Invalid username or password' });
+    if (!success) return res.status(401).json({ error: 'Invalid username or password' });
 
-  const token = signToken({ userId: user.id, username: user.username });
-  const access = await checkUserAccess(user.id);
+    const token = signToken({ userId: user.id, username: user.username });
+    const access = await checkUserAccess(user.id);
 
-  res.json({ token, hasAccess: access.hasAccess, expiresAt: access.expiresAt });
+    res.json({ token, hasAccess: access.hasAccess, expiresAt: access.expiresAt });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
 });
 
 // CHECK ACCESS
 app.get('/api/check-access', verifyToken, async (req, res) => {
-  const access = await checkUserAccess(req.user.userId);
-  res.json(access);
+  try {
+    const access = await checkUserAccess(req.user.userId);
+    res.json(access);
+  } catch (err) {
+    res.status(500).json({ error: 'Check access failed' });
+  }
 });
 
 // ──────────────────────────────────────────────
@@ -180,17 +197,16 @@ app.get('/api/check-access', verifyToken, async (req, res) => {
 
 // INITIATE M-PESA PAYMENT
 app.post('/api/pay/initiate', verifyToken, async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ error: 'Phone number required' });
-
   try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: 'Phone number required' });
+
     const result = await stkPush({ phone, amount: 10 });
 
     if (result.ResponseCode !== '0') {
       return res.status(400).json({ error: result.ResponseDescription || 'M-Pesa request failed' });
     }
 
-    // Save pending payment
     await supabase.from('payments').insert({
       user_id: req.user.userId,
       username: req.user.username,
@@ -205,66 +221,71 @@ app.post('/api/pay/initiate', verifyToken, async (req, res) => {
       checkoutRequestId: result.CheckoutRequestID
     });
   } catch (e) {
-    console.error('STK push error:', e.response?.data || e.message);
-    res.status(500).json({ error: 'Payment initiation failed. Try again.' });
+    console.error('STK push error:', e.message);
+    res.status(500).json({ error: 'Payment initiation failed' });
   }
 });
 
-// M-PESA CALLBACK (called by Safaricom servers)
+// M-PESA CALLBACK
 app.post('/api/pay/callback', async (req, res) => {
-  const body = req.body?.Body?.stkCallback;
-  if (!body) return res.sendStatus(200);
+  try {
+    const body = req.body?.Body?.stkCallback;
+    if (!body) return res.sendStatus(200);
 
-  const checkoutRequestId = body.CheckoutRequestID;
-  const resultCode = body.ResultCode;
+    const checkoutRequestId = body.CheckoutRequestID;
+    const resultCode = body.ResultCode;
 
-  if (resultCode === 0) {
-    // Payment successful
-    const items = body.CallbackMetadata?.Item || [];
-    const getItem = name => items.find(i => i.Name === name)?.Value;
-    const mpesaRef = getItem('MpesaReceiptNumber');
-    const amount = getItem('Amount');
+    if (resultCode === 0) {
+      const items = body.CallbackMetadata?.Item || [];
+      const getItem = name => items.find(i => i.Name === name)?.Value;
+      const mpesaRef = getItem('MpesaReceiptNumber');
+      const amount = getItem('Amount');
 
-    // Update payment record
-    await supabase.from('payments')
-      .update({ status: 'paid', mpesa_ref: mpesaRef, amount })
-      .eq('checkout_request_id', checkoutRequestId);
+      await supabase.from('payments')
+        .update({ status: 'paid', mpesa_ref: mpesaRef, amount })
+        .eq('checkout_request_id', checkoutRequestId);
 
-    // Get user and grant 30-minute session
-    const { data: payment } = await supabase
-      .from('payments').select('user_id').eq('checkout_request_id', checkoutRequestId).single();
+      const { data: payment } = await supabase
+        .from('payments').select('user_id').eq('checkout_request_id', checkoutRequestId).single();
 
-    if (payment) {
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      await supabase.from('sessions').insert({
-        user_id: payment.user_id,
-        expires_at: expiresAt
-      });
+      if (payment) {
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        await supabase.from('sessions').insert({
+          user_id: payment.user_id,
+          expires_at: expiresAt
+        });
+      }
+    } else {
+      await supabase.from('payments')
+        .update({ status: 'failed' })
+        .eq('checkout_request_id', checkoutRequestId);
     }
-  } else {
-    // Payment failed/cancelled
-    await supabase.from('payments')
-      .update({ status: 'failed' })
-      .eq('checkout_request_id', checkoutRequestId);
-  }
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Callback error:', err);
+    res.sendStatus(200);
+  }
 });
 
 // POLL PAYMENT STATUS
 app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
-  const { checkoutRequestId } = req.params;
-  const { data } = await supabase
-    .from('payments').select('status').eq('checkout_request_id', checkoutRequestId).single();
+  try {
+    const { checkoutRequestId } = req.params;
+    const { data } = await supabase
+      .from('payments').select('status').eq('checkout_request_id', checkoutRequestId).single();
 
-  if (!data) return res.status(404).json({ error: 'Payment not found' });
+    if (!data) return res.status(404).json({ error: 'Payment not found' });
 
-  if (data.status === 'paid') {
-    const access = await checkUserAccess(req.user.userId);
-    return res.json({ status: 'paid', expiresAt: access.expiresAt });
+    if (data.status === 'paid') {
+      const access = await checkUserAccess(req.user.userId);
+      return res.json({ status: 'paid', expiresAt: access.expiresAt });
+    }
+
+    res.json({ status: data.status });
+  } catch (err) {
+    res.status(500).json({ error: 'Status check failed' });
   }
-
-  res.json({ status: data.status });
 });
 
 // ──────────────────────────────────────────────
@@ -283,85 +304,106 @@ app.post('/api/admin/login', (req, res) => {
 
 // ADMIN: STATS
 app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const [users, payments, failedToday, activeSessions] = await Promise.all([
-    supabase.from('users').select('id', { count: 'exact', head: true }),
-    supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
-    supabase.from('login_attempts').select('id', { count: 'exact', head: true })
-      .eq('status', 'failed').gte('created_at', today.toISOString()),
-    supabase.from('sessions').select('id', { count: 'exact', head: true })
-      .gt('expires_at', new Date().toISOString())
-  ]);
+    const [users, payments, failedToday, activeSessions] = await Promise.all([
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+      supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+      supabase.from('login_attempts').select('id', { count: 'exact', head: true })
+        .eq('status', 'failed').gte('created_at', today.toISOString()),
+      supabase.from('sessions').select('id', { count: 'exact', head: true })
+        .gt('expires_at', new Date().toISOString())
+    ]);
 
-  res.json({
-    totalUsers: users.count || 0,
-    successPayments: payments.count || 0,
-    failedLoginsToday: failedToday.count || 0,
-    activeSessions: activeSessions.count || 0
-  });
+    res.json({
+      totalUsers: users.count || 0,
+      successPayments: payments.count || 0,
+      failedLoginsToday: failedToday.count || 0,
+      activeSessions: activeSessions.count || 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Stats error' });
+  }
 });
 
 // ADMIN: LOGIN ATTEMPTS
 app.get('/api/admin/attempts', verifyAdmin, async (req, res) => {
-  const { data, error } = await supabase
-    .from('login_attempts')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(500);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  try {
+    const { data, error } = await supabase
+      .from('login_attempts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Attempts error' });
+  }
 });
 
 // ADMIN: USERS
 app.get('/api/admin/users', verifyAdmin, async (req, res) => {
-  const { data: users, error } = await supabase
-    .from('users').select('id, name, username, created_at').order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
+  try {
+    const { data: users, error } = await supabase
+      .from('users').select('id, name, username, created_at').order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
 
-  // Enrich with session status
-  const enriched = await Promise.all((users || []).map(async (u) => {
-    const { data: session } = await supabase
-      .from('sessions').select('expires_at').eq('user_id', u.id)
-      .gt('expires_at', new Date().toISOString()).order('expires_at', { ascending: false }).limit(1).single();
-    const hasAccess = !!session;
-    const minutesLeft = hasAccess
-      ? Math.max(0, Math.ceil((new Date(session.expires_at) - Date.now()) / 60000))
-      : 0;
-    return { ...u, hasAccess, minutesLeft };
-  }));
+    const enriched = await Promise.all((users || []).map(async (u) => {
+      const { data: session } = await supabase
+        .from('sessions').select('expires_at').eq('user_id', u.id)
+        .gt('expires_at', new Date().toISOString()).order('expires_at', { ascending: false }).limit(1).single();
+      const hasAccess = !!session;
+      const minutesLeft = hasAccess
+        ? Math.max(0, Math.ceil((new Date(session.expires_at) - Date.now()) / 60000))
+        : 0;
+      return { ...u, hasAccess, minutesLeft };
+    }));
 
-  res.json(enriched);
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: 'Users error' });
+  }
 });
 
 // ADMIN: PAYMENTS
 app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(500);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Payments error' });
+  }
 });
 
 // ──────────────────────────────────────────────
-// SERVE STATIC FILES (AFTER ALL API ROUTES)
+// SERVE STATIC FILES & FALLBACK (AFTER ALL API ROUTES)
 // ──────────────────────────────────────────────
-app.use(express.static('.')); // Serve static files (HTML, CSS, JS, etc)
 
-// Fallback: serve index.html for non-API client-side routes ONLY
-app.get(/^(?!.*\/api)/, (req, res) => {
-  res.sendFile(__dirname + '/index.html', (err) => {
-    if (err) {
-      res.status(404).send('Not found');
-    }
-  });
+// Serve static files (HTML, CSS, JS, images, etc)
+app.use(express.static('.'));
+
+// For any route that isn't found as a static file, serve index.html
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ──────────────────────────────────────────────
-// START
+// ERROR HANDLER
+// ──────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// ──────────────────────────────────────────────
+// START SERVER
 // ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`ElimuPay server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ ElimuPay server running on port ${PORT}`));
