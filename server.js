@@ -69,6 +69,20 @@ async function getMpesaToken() {
   const auth = Buffer.from(
     `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
   ).toString('base64');
+  try {
+    const { data } = await axios.get(
+      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+      { headers: { Authorization: `Basic ${auth}` } }
+    );
+    return data.access_token;
+  } catch (e) {
+    console.error('Token error:', e.response?.data || e.message);
+    throw e;
+  }
+}
+  const auth = Buffer.from(
+    `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
+  ).toString('base64');
   const { data } = await axios.get(
     'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
     { headers: { Authorization: `Basic ${auth}` } }
