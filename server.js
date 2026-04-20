@@ -11,17 +11,11 @@ const app = express();
 app.use(express.json());
 app.use(cors({ origin: '*' }));
 
-// ──────────────────────────────────────────────
-// SUPABASE
-// ──────────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// ──────────────────────────────────────────────
-// HELPERS
-// ──────────────────────────────────────────────
 function getIP(req) {
   return (
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -71,14 +65,10 @@ async function checkUserAccess(userId) {
   return data ? { hasAccess: true, expiresAt: data.expires_at } : { hasAccess: false };
 }
 
-// ──────────────────────────────────────────────
-// M-PESA HELPERS
-// ──────────────────────────────────────────────
 async function getMpesaToken() {
   const auth = Buffer.from(
     `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
   ).toString('base64');
-
   const { data } = await axios.get(
     'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
     { headers: { Authorization: `Basic ${auth}` } }
@@ -92,7 +82,6 @@ async function stkPush({ phone, amount }) {
   const shortcode = process.env.MPESA_SHORTCODE;
   const passkey = process.env.MPESA_PASSKEY;
   const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
-
   const { data } = await axios.post(
     'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
     {
@@ -113,26 +102,17 @@ async function stkPush({ phone, amount }) {
   return data;
 }
 
-// ──────────────────────────────────────────────
-// ROUTES: AUTH
-// ──────────────────────────────────────────────
-
-// REGISTER
 app.post('/api/register', async (req, res) => {
   try {
     const { name, username, password } = req.body;
     if (!name || !username || !password) return res.status(400).json({ error: 'All fields required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password too short' });
-
     const { data: existing, error: checkError } = await supabase
       .from('users').select('id').eq('username', username.toLowerCase()).single();
-
     if (checkError && checkError.code !== 'PGRST116') {
       return res.status(500).json({ error: 'Database error' });
     }
-
     if (existing) return res.status(409).json({ error: 'Username already taken' });
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const { error } = await supabase.from('users').insert({
       name,
@@ -140,7 +120,6 @@ app.post('/api/register', async (req, res) => {
       password: hashedPassword
     });
     if (error) return res.status(500).json({ error: 'Registration failed' });
-
     res.json({ message: 'Account created successfully' });
   } catch (err) {
     console.error('Register error:', err);
@@ -148,32 +127,24 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// LOGIN
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const ip = getIP(req);
     const userAgent = req.headers['user-agent'] || '';
-
     if (!username || !password) return res.status(400).json({ error: 'All fields required' });
-
     const { data: user } = await supabase
       .from('users').select('*').eq('username', username.toLowerCase()).single();
-
     const success = user && (await bcrypt.compare(password, user.password));
-
     await supabase.from('login_attempts').insert({
       username: username.toLowerCase(),
       ip,
       user_agent: userAgent,
       status: success ? 'success' : 'failed'
     });
-
     if (!success) return res.status(401).json({ error: 'Invalid username or password' });
-
     const token = signToken({ userId: user.id, username: user.username });
     const access = await checkUserAccess(user.id);
-
     res.json({ token, hasAccess: access.hasAccess, expiresAt: access.expiresAt });
   } catch (err) {
     console.error('Login error:', err);
@@ -181,7 +152,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// CHECK ACCESS
 app.get('/api/check-access', verifyToken, async (req, res) => {
   try {
     const access = await checkUserAccess(req.user.userId);
@@ -191,22 +161,14 @@ app.get('/api/check-access', verifyToken, async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// ROUTES: PAYMENT
-// ──────────────────────────────────────────────
-
-// INITIATE M-PESA PAYMENT
 app.post('/api/pay/initiate', verifyToken, async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone number required' });
-
     const result = await stkPush({ phone, amount: 10 });
-
     if (result.ResponseCode !== '0') {
       return res.status(400).json({ error: result.ResponseDescription || 'M-Pesa request failed' });
     }
-
     await supabase.from('payments').insert({
       user_id: req.user.userId,
       username: req.user.username,
@@ -215,39 +177,29 @@ app.post('/api/pay/initiate', verifyToken, async (req, res) => {
       checkout_request_id: result.CheckoutRequestID,
       status: 'pending'
     });
-
-    res.json({
-      message: 'STK push sent',
-      checkoutRequestId: result.CheckoutRequestID
-    });
+    res.json({ message: 'STK push sent', checkoutRequestId: result.CheckoutRequestID });
   } catch (e) {
     console.error('STK push error:', e.message);
     res.status(500).json({ error: 'Payment initiation failed' });
   }
 });
 
-// M-PESA CALLBACK
 app.post('/api/pay/callback', async (req, res) => {
   try {
     const body = req.body?.Body?.stkCallback;
     if (!body) return res.sendStatus(200);
-
     const checkoutRequestId = body.CheckoutRequestID;
     const resultCode = body.ResultCode;
-
     if (resultCode === 0) {
       const items = body.CallbackMetadata?.Item || [];
       const getItem = name => items.find(i => i.Name === name)?.Value;
       const mpesaRef = getItem('MpesaReceiptNumber');
       const amount = getItem('Amount');
-
       await supabase.from('payments')
         .update({ status: 'paid', mpesa_ref: mpesaRef, amount })
         .eq('checkout_request_id', checkoutRequestId);
-
       const { data: payment } = await supabase
         .from('payments').select('user_id').eq('checkout_request_id', checkoutRequestId).single();
-
       if (payment) {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         await supabase.from('sessions').insert({
@@ -260,7 +212,6 @@ app.post('/api/pay/callback', async (req, res) => {
         .update({ status: 'failed' })
         .eq('checkout_request_id', checkoutRequestId);
     }
-
     res.sendStatus(200);
   } catch (err) {
     console.error('Callback error:', err);
@@ -268,7 +219,6 @@ app.post('/api/pay/callback', async (req, res) => {
   }
 });
 
-// POLL PAYMENT STATUS
 app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   try {
     const { checkoutRequestId } = req.params;
@@ -277,7 +227,6 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
       .select('status, mpesa_ref, amount')
       .eq('checkout_request_id', checkoutRequestId)
       .single();
-
     if (!data) return res.status(404).json({ error: 'Payment not found' });
     res.json(data);
   } catch (err) {
@@ -286,18 +235,12 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// SERVE FRONTEND
-// ──────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname)));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ──────────────────────────────────────────────
-// START SERVER
-// ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`ElimuPay server running on port ${PORT}`);
