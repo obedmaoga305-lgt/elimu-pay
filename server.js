@@ -86,7 +86,6 @@ async function getMpesaToken() {
   return data.access_token;
 }
 
-// ✅ FIXED: Removed unused 'checkoutRequestId' parameter
 async function stkPush({ phone, amount }) {
   const token = await getMpesaToken();
   const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
@@ -127,11 +126,11 @@ app.post('/api/register', async (req, res) => {
 
     const { data: existing, error: checkError } = await supabase
       .from('users').select('id').eq('username', username.toLowerCase()).single();
-    
+
     if (checkError && checkError.code !== 'PGRST116') {
       return res.status(500).json({ error: 'Database error' });
     }
-    
+
     if (existing) return res.status(409).json({ error: 'Username already taken' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -287,6 +286,18 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   }
 });
 
+// ──────────────────────────────────────────────
+// SERVE FRONTEND
+// ──────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ──────────────────────────────────────────────
+// START SERVER
+// ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`ElimuPay server running on port ${PORT}`);
