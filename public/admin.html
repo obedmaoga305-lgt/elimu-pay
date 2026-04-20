@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElimuPay — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #1a5c38; --green-light: #e8f5ee;
+      --gold: #c8922a; --red: #dc2626; --red-light: #fee2e2;
+      --text: #1a1a1a; --muted: #6b7280;
+      --border: #e5e7eb; --white: #fff; --bg: #f7f6f2;
+    }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); min-height:100vh; }
+
+    /* LOGIN SCREEN */
+    #admin-login {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:2rem;
+    }
+    .admin-login-card {
+      background:var(--white); border-radius:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,0.1);
+      padding:2.5rem; width:100%; max-width:380px;
+    }
+    .admin-login-card h2 { font-family:'Playfair Display',serif; font-size:1.6rem; margin-bottom:0.3rem; }
+    .admin-login-card p { color:var(--muted); font-size:0.9rem; margin-bottom:1.8rem; }
+
+    .form-group { margin-bottom:1.2rem; }
+    .form-group label { display:block; font-size:0.85rem; font-weight:500; margin-bottom:6px; }
+    .form-group input {
+      width:100%; padding:11px 14px;
+      border:1.5px solid var(--border); border-radius:10px;
+      font-family:'DM Sans',sans-serif; font-size:0.95rem;
+      outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(26,92,56,0.1); }
+    .btn {
+      width:100%; padding:12px;
+      background:var(--green); color:#fff;
+      border:none; border-radius:10px;
+      font-family:'DM Sans',sans-serif;
+      font-size:0.95rem; font-weight:600;
+      cursor:pointer; transition:background 0.2s;
+    }
+    .btn:hover { background:#14472c; }
+    .admin-err { background:var(--red-light); color:var(--red); border:1px solid #fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:1rem; display:none; }
+    .admin-err.show { display:block; }
+
+    /* DASHBOARD */
+    #dashboard { display:none; }
+
+    header {
+      background:var(--green); padding:0 2rem;
+      display:flex; align-items:center; justify-content:space-between; height:60px;
+    }
+    .brand { font-family:'Playfair Display',serif; color:#fff; font-size:1.2rem; display:flex; align-items:center; gap:8px; }
+    .brand span { background:var(--gold); border-radius:6px; padding:2px 8px; }
+    .admin-badge { background:rgba(200,146,42,0.3); color:#f5c878; font-size:0.75rem; padding:4px 10px; border-radius:100px; }
+    .logout-btn { background:none; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); padding:6px 14px; border-radius:8px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:0.85rem; }
+    .logout-btn:hover { background:rgba(255,255,255,0.1); }
+
+    .dash-content { max-width:1200px; margin:0 auto; padding:2rem; }
+    .dash-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; }
+    .dash-header h1 { font-family:'Playfair Display',serif; font-size:1.8rem; }
+    .refresh-btn {
+      padding:8px 16px; background:var(--white);
+      border:1px solid var(--border); border-radius:8px;
+      cursor:pointer; font-family:'DM Sans',sans-serif;
+      font-size:0.85rem; color:var(--green); transition:background 0.15s;
+    }
+    .refresh-btn:hover { background:var(--green-light); }
+
+    /* STAT CARDS */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:2rem; }
+    .stat-card { background:var(--white); border-radius:14px; padding:1.2rem 1.5rem; border:1px solid var(--border); }
+    .stat-label { font-size:0.8rem; color:var(--muted); margin-bottom:6px; }
+    .stat-value { font-size:2rem; font-weight:700; color:var(--text); }
+    .stat-card.green .stat-value { color:var(--green); }
+    .stat-card.red .stat-value { color:var(--red); }
+    .stat-card.gold .stat-value { color:var(--gold); }
+
+    /* TABLES */
+    .section { background:var(--white); border-radius:14px; border:1px solid var(--border); margin-bottom:1.5rem; overflow:hidden; }
+    .section-header {
+      padding:1rem 1.5rem; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .section-header h3 { font-size:1rem; font-weight:600; }
+    .section-badge { background:var(--green-light); color:var(--green); font-size:0.75rem; padding:3px 10px; border-radius:100px; }
+    .section-badge.red { background:var(--red-light); color:var(--red); }
+
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 16px; background:#f9fafb; text-align:left; font-size:0.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+    td { padding:12px 16px; font-size:0.875rem; color:var(--text); border-top:1px solid var(--border); vertical-align:middle; }
+    tr:hover td { background:#f9fafb; }
+
+    .badge {
+      display:inline-block; padding:3px 10px; border-radius:100px;
+      font-size:0.75rem; font-weight:600;
+    }
+    .badge.success { background:#dcfce7; color:#15803d; }
+    .badge.failed { background:var(--red-light); color:var(--red); }
+    .badge.active { background:var(--green-light); color:var(--green); }
+    .badge.expired { background:#f3f4f6; color:var(--muted); }
+
+    .ip-chip {
+      font-family:monospace; font-size:0.8rem;
+      background:#f3f4f6; padding:3px 8px; border-radius:6px;
+    }
+
+    .empty-state { padding:3rem; text-align:center; color:var(--muted); }
+    .spinner-wrap { padding:3rem; text-align:center; }
+    .spinner { display:inline-block; width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .tab-bar { display:flex; gap:8px; padding:1rem 1.5rem; border-bottom:1px solid var(--border); background:#f9fafb; }
+    .tab { padding:6px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--muted); transition:all 0.15s; border:none; background:none; font-family:'DM Sans',sans-serif; }
+    .tab.active { background:var(--white); color:var(--green); border:1px solid var(--border); box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+  </style>
+</head>
+<body>
+
+<!-- ADMIN LOGIN -->
+<div id="admin-login">
+  <div class="admin-login-card">
+    <div style="font-size:40px;margin-bottom:1rem">🛡️</div>
+    <h2>Admin Access</h2>
+    <p>This area is restricted to administrators only.</p>
+    <div class="admin-err" id="admin-err"></div>
+    <div class="form-group">
+      <label>Admin Password</label>
+      <input type="password" id="admin-pass" placeholder="Enter admin password" />
+    </div>
+    <button class="btn" onclick="adminLogin()">Access Dashboard</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header>
+    <div class="brand"><span>📚</span> ElimuPay <span class="admin-badge">ADMIN</span></div>
+    <button class="logout-btn" onclick="adminLogout()">Logout</button>
+  </header>
+
+  <div class="dash-content">
+    <div class="dash-header">
+      <h1>Admin Dashboard</h1>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="stat-users">—</div></div>
+      <div class="stat-card green"><div class="stat-label">Successful Payments</div><div class="stat-value" id="stat-payments">—</div></div>
+      <div class="stat-card gold"><div class="stat-label">Revenue (KSh)</div><div class="stat-value" id="stat-revenue">—</div></div>
+      <div class="stat-card red"><div class="stat-label">Failed Logins Today</div><div class="stat-value" id="stat-failed">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active Sessions</div><div class="stat-value" id="stat-active">—</div></div>
+    </div>
+
+    <!-- LOGIN ATTEMPTS -->
+    <div class="section">
+      <div class="section-header">
+        <h3>🔐 Login Attempts</h3>
+        <span class="section-badge red" id="attempts-count">Loading...</span>
+      </div>
+      <div class="tab-bar">
+        <button class="tab active" onclick="filterAttempts('all',this)">All</button>
+        <button class="tab" onclick="filterAttempts('success',this)">Success</button>
+        <button class="tab" onclick="filterAttempts('failed',this)">Failed</button>
+      </div>
+      <div id="attempts-table">
+        <div class="spinner-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section">
+      <div class="section-header">
+        <h3>👤 Registered Users</h3>
+        <span class="section-badge" id="users-count">Loading...</span>
+      </div>
+      <div id="users-table">
+        <div class="spinner-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="section">
+      <div class="section-header">
+        <h3>💳 Payments</h3>
+        <span class="section-badge" id="payments-count">Loading...</span>
+      </div>
+      <div id="payments-table">
+        <div class="spinner-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_PASS_KEY = 'adminToken';
+  const API = 'https://elimu-pay.onrender.com';
+  let allAttempts = [];
+  let currentAttemptFilter = 'all';
+
+  async function adminLogin() {
+    const pass = document.getElementById('admin-pass').value;
+    if (!pass) return alert('Enter password');
+
+    try {
+      const res = await fetch(`${API}/api/admin/login`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pass })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Wrong password');
+      sessionStorage.setItem(ADMIN_PASS_KEY, data.adminToken);
+      showDashboard();
+    } catch(e) {
+      const err = document.getElementById('admin-err');
+      err.textContent = e.message;
+      err.classList.add('show');
+      console.error('Login error:', e);
+    }
+  }
+
+  function showDashboard() {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadAll();
+    // Auto-refresh every 30 seconds
+    setInterval(loadAll, 30000);
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem(ADMIN_PASS_KEY);
+    location.reload();
+  }
+
+  function getAdminHeaders() {
+    return {
+      'Authorization': `Bearer ${sessionStorage.getItem(ADMIN_PASS_KEY)}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  async function loadAll() {
+    loadAttempts();
+    loadUsers();
+    loadPayments();
+    loadStats();
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/admin/stats`, { headers: getAdminHeaders() });
+      const d = await res.json();
+      document.getElementById('stat-users').textContent = d.totalUsers || 0;
+      document.getElementById('stat-payments').textContent = d.successPayments || 0;
+      document.getElementById('stat-revenue').textContent = (d.successPayments || 0) * 10;
+      document.getElementById('stat-failed').textContent = d.failedLoginsToday || 0;
+      document.getElementById('stat-active').textContent = d.activeSessions || 0;
+    } catch (e) {
+      console.error('Stats error:', e);
+    }
+  }
+
+  async function loadAttempts() {
+    try {
+      const res = await fetch(`${API}/api/admin/attempts`, { headers: getAdminHeaders() });
+      allAttempts = await res.json();
+      document.getElementById('attempts-count').textContent = `${allAttempts.length} total`;
+      renderAttempts();
+    } catch (e) {
+      console.error('Attempts error:', e);
+      document.getElementById('attempts-table').innerHTML = '<div class="empty-state">Failed to load</div>';
+    }
+  }
+
+  function filterAttempts(filter, btn) {
+    currentAttemptFilter = filter;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderAttempts();
+  }
+
+  function renderAttempts() {
+    const data = currentAttemptFilter === 'all' ? allAttempts
+      : allAttempts.filter(a => a.status === currentAttemptFilter);
+
+    if (!data.length) {
+      document.getElementById('attempts-table').innerHTML = '<div class="empty-state">No attempts found</div>';
+      return;
+    }
+
+    document.getElementById('attempts-table').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Username</th><th>IP Address</th><th>Status</th><th>User Agent</th><th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.slice(0,100).map((a,i) => `
+            <tr>
+              <td style="color:var(--muted)">${i+1}</td>
+              <td><strong>${a.username || '—'}</strong></td>
+              <td><span class="ip-chip">${a.ip || 'Unknown'}</span></td>
+              <td><span class="badge ${a.status === 'success' ? 'success' : 'failed'}">${a.status}</span></td>
+              <td style="color:var(--muted);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.user_agent || '—'}</td>
+              <td style="color:var(--muted);font-size:0.8rem">${formatDate(a.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function loadUsers() {
+    try {
+      const res = await fetch(`${API}/api/admin/users`, { headers: getAdminHeaders() });
+      const data = await res.json();
+      document.getElementById('users-count').textContent = `${data.length} users`;
+
+      if (!data.length) {
+        document.getElementById('users-table').innerHTML = '<div class="empty-state">No users yet</div>';
+        return;
+      }
+
+      document.getElementById('users-table').innerHTML = `
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Session Status</th><th>Registered</th></tr></thead>
+          <tbody>
+            ${data.map((u,i) => `
+              <tr>
+                <td style="color:var(--muted)">${i+1}</td>
+                <td><strong>${u.name}</strong></td>
+                <td>${u.username}</td>
+                <td><span class="badge ${u.hasAccess ? 'active' : 'expired'}">${u.hasAccess ? 'Active (' + u.minutesLeft + 'min left)' : 'Expired'}</span></td>
+                <td style="color:var(--muted);font-size:0.8rem">${formatDate(u.created_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (e) {
+      console.error('Users error:', e);
+      document.getElementById('users-table').innerHTML = '<div class="empty-state">Failed to load</div>';
+    }
+  }
+
+  async function loadPayments() {
+    try {
+      const res = await fetch(`${API}/api/admin/payments`, { headers: getAdminHeaders() });
+      const data = await res.json();
+      document.getElementById('payments-count').textContent = `${data.length} payments`;
+
+      if (!data.length) {
+        document.getElementById('payments-table').innerHTML = '<div class="empty-state">No payments yet</div>';
+        return;
+      }
+
+      document.getElementById('payments-table').innerHTML = `
+        <table>
+          <thead><tr><th>#</th><th>Username</th><th>Phone</th><th>Amount</th><th>M-Pesa Ref</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+            ${data.map((p,i) => `
+              <tr>
+                <td style="color:var(--muted)">${i+1}</td>
+                <td><strong>${p.username}</strong></td>
+                <td><span class="ip-chip">${p.phone}</span></td>
+                <td style="font-weight:600;color:var(--green)">KSh ${p.amount}</td>
+                <td style="font-family:monospace;font-size:0.8rem">${p.mpesa_ref || '—'}</td>
+                <td><span class="badge ${p.status === 'paid' ? 'success' : 'failed'}">${p.status}</span></td>
+                <td style="color:var(--muted);font-size:0.8rem">${formatDate(p.created_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (e) {
+      console.error('Payments error:', e);
+      document.getElementById('payments-table').innerHTML = '<div class="empty-state">Failed to load</div>';
+    }
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleString('en-KE', { dateStyle:'short', timeStyle:'short' });
+  }
+
+  document.getElementById('admin-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') adminLogin();
+  });
+</script>
+</body>
+</html>
