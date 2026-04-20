@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElimuPay — Learn & Grow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1a5c38;
+      --green-light: #e8f5ee;
+      --gold: #c8922a;
+      --gold-light: #fdf3e3;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --white: #ffffff;
+      --red: #dc2626;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f7f6f2;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .page-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      max-width: 900px;
+      width: 100%;
+      background: var(--white);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+    }
+
+    /* LEFT PANEL */
+    .left-panel {
+      background: var(--green);
+      padding: 3rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      border: 60px solid rgba(255,255,255,0.06);
+      bottom: -80px; right: -80px;
+    }
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      border: 40px solid rgba(255,255,255,0.05);
+      top: 40px; right: 30px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 3rem; }
+    .brand-icon {
+      width: 42px; height: 42px;
+      background: var(--gold);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .brand-name { font-family: 'Playfair Display', serif; color: #fff; font-size: 1.4rem; }
+
+    .left-content h2 {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 2rem;
+      line-height: 1.3;
+      margin-bottom: 1.2rem;
+    }
+    .left-content p { color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.7; margin-bottom: 2rem; }
+
+    .features { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .features li {
+      display: flex; align-items: center; gap: 10px;
+      color: rgba(255,255,255,0.85); font-size: 0.9rem;
+    }
+    .features li span.dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--gold); flex-shrink: 0;
+    }
+
+    .price-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(200,146,42,0.2);
+      border: 1px solid rgba(200,146,42,0.4);
+      color: #f5c878;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 2rem;
+    }
+
+    /* RIGHT PANEL */
+    .right-panel { padding: 3rem 2.5rem; display: flex; flex-direction: column; justify-content: center; }
+
+    .tabs { display: flex; gap: 0; margin-bottom: 2rem; border-bottom: 2px solid var(--border); }
+    .tab-btn {
+      flex: 1; background: none; border: none; cursor: pointer;
+      padding: 10px 0; font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem; font-weight: 500; color: var(--muted);
+      border-bottom: 2px solid transparent; margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label {
+      display: block; font-size: 0.85rem; font-weight: 500;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+      color: var(--text); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(26,92,56,0.12);
+    }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, transform 0.1s;
+      margin-top: 0.5rem;
+    }
+    .btn-primary:hover { background: #14472c; }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    .msg {
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 0.875rem; margin-bottom: 1rem; display: none;
+    }
+    .msg.error { background: #fee2e2; color: var(--red); border: 1px solid #fca5a5; }
+    .msg.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .msg.show { display: block; }
+
+    .divider {
+      text-align: center; font-size: 0.8rem; color: var(--muted);
+      margin: 1rem 0; position: relative;
+    }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%; width: 40%; height: 1px;
+      background: var(--border);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 6px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      .page-wrap { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div>
+      <div class="brand">
+        <div class="brand-icon">📚</div>
+        <span class="brand-name">ElimuPay</span>
+      </div>
+      <div class="left-content">
+        <h2>Quality Education, One Video at a Time</h2>
+        <p>Access premium educational videos from Kenya's best tutors. Pay once, learn instantly.</p>
+        <ul class="features">
+          <li><span class="dot"></span>HD quality educational videos</li>
+          <li><span class="dot"></span>Pay via M-Pesa — fast & secure</li>
+          <li><span class="dot"></span>30 minutes of unlimited access</li>
+          <li><span class="dot"></span>All topics — Math, Science, English & more</li>
+        </ul>
+        <div class="price-badge">
+          🎓 Only KSh 10 per session
+        </div>
+      </div>
+    </div>
+    <p style="color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 2rem;">
+      © 2025 ElimuPay · Nairobi, Kenya
+    </p>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <h3 style="font-family:'Playfair Display',serif; font-size:1.6rem; margin-bottom:0.3rem;">Welcome</h3>
+    <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">Sign in or create your account</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="tab-content active" id="login-tab">
+      <div class="msg" id="login-msg"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="tab-content" id="register-tab">
+      <div class="msg" id="register-msg"></div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="John Kamau" />
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="reg-username" placeholder="Choose a username" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password"  />
+      </div>
+      <button class="btn-primary" id="register-btn" onclick="doRegister()">Create Account</button>
+    </div>
+
+    <div class="divider" style="margin-top:1.5rem;">Having trouble? Contact support</div>
+    <p style="text-align:center; font-size:0.8rem; color:var(--muted);">
+      By continuing you agree to our Terms of Service
+    </p>
+  </div>
+</div>
+
+<script>
+  const API = 'https://elimu-pay.onrender.com';
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+    });
+    document.getElementById('login-tab').classList.toggle('active', tab === 'login');
+    document.getElementById('register-tab').classList.toggle('active', tab === 'register');
+  }
+
+  function showMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.className = `msg ${type} show`;
+    el.textContent = text;
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<span class="spinner"></span>Please wait...'
+      : (btnId === 'login-btn' ? 'Sign In' : 'Create Account');
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) return showMsg('login-msg', 'error', 'Please fill in all fields.');
+
+    setLoading('login-btn', true);
+    try {
+      const res = await fetch(`${API}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('username', username);
+
+      if (data.hasAccess) {
+        window.location.href = 'videos.html';
+      } else {
+        window.location.href = 'pay.html';
+      }
+    } catch (e) {
+      showMsg('login-msg', 'error', e.message);
+    } finally {
+      setLoading('login-btn', false);
+    }
+  }
+
+  async function doRegister() {
+    const name = document.getElementById('reg-name').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!name || !username || !password) return showMsg('register-msg', 'error', 'Please fill in all fields.');
+    if (password.length < 6) return showMsg('register-msg', 'error', 'Password must be at least 6 characters.');
+
+    setLoading('register-btn', true);
+    try {
+      const res = await fetch(`${API}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
+      showMsg('register-msg', 'success', 'Account created! Please sign in.');
+      setTimeout(() => switchTab('login'), 1500);
+    } catch (e) {
+      showMsg('register-msg', 'error', e.message);
+    } finally {
+      setLoading('register-btn', false);
+    }
+  }
+
+  // Allow Enter key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('login-tab').classList.contains('active')) doLogin();
+      else doRegister();
+    }
+  });
+</script>
+</body>
+</html>
