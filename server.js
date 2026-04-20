@@ -273,4 +273,21 @@ app.post('/api/pay/callback', async (req, res) => {
 app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   try {
     const { checkoutRequestId } = req.params;
-    const { data
+    const { data } = await supabase
+      .from('payments')
+      .select('status, mpesa_ref, amount')
+      .eq('checkout_request_id', checkoutRequestId)
+      .single();
+
+    if (!data) return res.status(404).json({ error: 'Payment not found' });
+    res.json(data);
+  } catch (err) {
+    console.error('Status error:', err);
+    res.status(500).json({ error: 'Status check failed' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`ElimuPay server running on port ${PORT}`);
+});
