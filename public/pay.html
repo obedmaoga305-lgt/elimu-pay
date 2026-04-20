@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElimuPay — Pay to Learn</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #1a5c38; --green-light: #e8f5ee;
+      --gold: #c8922a; --gold-light: #fdf3e3;
+      --mpesa: #00a651;
+      --text: #1a1a1a; --muted: #6b7280; --border: #d1d5db; --white: #ffffff;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f7f6f2;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .logo { font-family:'Playfair Display',serif; color:var(--green); font-size:1.4rem; margin-bottom:2rem; display:flex; align-items:center; gap:8px; }
+    .logo span { background:var(--gold); border-radius:8px; padding:4px 8px; font-size:1.1rem; }
+
+    .card {
+      background: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+      padding: 2.5rem;
+      width: 100%; max-width: 420px;
+    }
+
+    .access-badge {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--gold-light);
+      border: 1px solid #e8c97a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 2rem;
+    }
+    .access-badge .icon { font-size: 28px; }
+    .access-badge .info strong { display:block; color:var(--text); font-size:1rem; margin-bottom:2px; }
+    .access-badge .info span { color: var(--muted); font-size:0.85rem; }
+
+    .price-display {
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--green);
+      border-radius: 14px;
+      margin-bottom: 2rem;
+    }
+    .price-display .label { color: rgba(255,255,255,0.7); font-size:0.85rem; margin-bottom:4px; }
+    .price-display .amount { color:#fff; font-size:2.8rem; font-weight:700; font-family:'Playfair Display',serif; }
+    .price-display .sub { color: rgba(255,255,255,0.6); font-size:0.8rem; margin-top:4px; }
+
+    h3 { font-size:1rem; font-weight:600; color:var(--text); margin-bottom:1rem; }
+
+    .form-group { margin-bottom:1.2rem; }
+    .form-group label { display:block; font-size:0.85rem; font-weight:500; color:var(--text); margin-bottom:6px; }
+    .phone-input-wrap { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    .phone-input-wrap:focus-within { border-color:var(--mpesa); box-shadow:0 0 0 3px rgba(0,166,81,0.1); }
+    .phone-prefix {
+      padding: 11px 12px; background: #f3f4f6;
+      border-right: 1.5px solid var(--border);
+      font-size:0.9rem; font-weight:600; color:var(--mpesa);
+      white-space: nowrap;
+    }
+    .phone-input-wrap input {
+      flex:1; padding:11px 14px; border:none; outline:none;
+      font-family:'DM Sans',sans-serif; font-size:0.95rem; color:var(--text);
+      background: transparent;
+    }
+
+    .mpesa-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; background: #f0faf4;
+      border: 1px solid #a7dfc0; border-radius:10px;
+      margin-bottom: 1.5rem;
+      font-size:0.85rem; color: #166534;
+    }
+    .mpesa-badge strong { color: var(--mpesa); }
+
+    .btn-pay {
+      width:100%; padding:14px;
+      background: var(--mpesa); color:#fff;
+      border:none; border-radius:12px;
+      font-family:'DM Sans',sans-serif;
+      font-size:1rem; font-weight:600;
+      cursor:pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .btn-pay:hover { background:#008f45; }
+    .btn-pay:active { transform:scale(0.99); }
+    .btn-pay:disabled { background:#9ca3af; cursor:not-allowed; }
+
+    .msg {
+      padding:10px 14px; border-radius:8px;
+      font-size:0.875rem; margin-bottom:1rem; display:none;
+    }
+    .msg.error { background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
+    .msg.success { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+    .msg.info { background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; }
+    .msg.show { display:block; }
+
+    .status-checking {
+      text-align:center; padding:1.5rem;
+      display:none; flex-direction:column; align-items:center; gap:12px;
+    }
+    .status-checking.show { display:flex; }
+    .pulse-ring {
+      width:50px; height:50px;
+      border-radius:50%; border:3px solid var(--mpesa);
+      border-top-color:transparent;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .steps {
+      list-style:none; counter-reset:step;
+      display:flex; flex-direction:column; gap:10px;
+      margin-bottom:1.5rem;
+    }
+    .steps li {
+      counter-increment:step;
+      display:flex; gap:10px; align-items:flex-start;
+      font-size:0.85rem; color:var(--muted);
+    }
+    .steps li::before {
+      content:counter(step);
+      min-width:22px; height:22px; border-radius:50%;
+      background:var(--green-light); color:var(--green);
+      font-size:0.75rem; font-weight:600;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; margin-top:1px;
+    }
+
+    .back-link {
+      display:block; text-align:center; margin-top:1.5rem;
+      color:var(--muted); font-size:0.85rem; text-decoration:none;
+    }
+    .back-link:hover { color:var(--green); }
+
+    .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; margin-right:6px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+
+<div class="logo"><span>📚</span> ElimuPay</div>
+
+<div class="card">
+  <div class="access-badge">
+    <div class="icon">⏱️</div>
+    <div class="info">
+      <strong>30 Minutes of Full Access</strong>
+      <span>Watch all videos, unlimited, for 30 minutes</span>
+    </div>
+  </div>
+
+  <div class="price-display">
+    <div class="label">Pay once today</div>
+    <div class="amount">KSh 10</div>
+    <div class="sub">via M-Pesa · Instant access</div>
+  </div>
+
+  <div id="payment-form">
+    <h3>Enter your M-Pesa number</h3>
+
+    <div class="msg" id="pay-msg"></div>
+
+    <div class="form-group">
+      <label>Phone Number</label>
+      <div class="phone-input-wrap">
+        <span class="phone-prefix">+254</span>
+        <input type="tel" id="phone" placeholder="7XX XXX XXX" maxlength="9" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="mpesa-badge">
+      🔒 Secure payment via <strong>M-Pesa</strong> · You will get a push notification
+    </div>
+
+    <ul class="steps">
+      <li>Click Pay and enter your M-Pesa PIN on your phone</li>
+      <li>Wait for the M-Pesa confirmation SMS</li>
+      <li>You'll be taken to the videos automatically</li>
+    </ul>
+
+    <button class="btn-pay" id="pay-btn" onclick="initiatePayment()">
+      Pay KSh 10 via M-Pesa
+    </button>
+  </div>
+
+  <div class="status-checking" id="checking-status">
+    <div class="pulse-ring"></div>
+    <strong style="color:var(--text)">Waiting for your M-Pesa PIN...</strong>
+    <p style="color:var(--muted);font-size:0.85rem;text-align:center">
+      Check your phone for the M-Pesa prompt.<br/>Enter your PIN to complete payment.
+    </p>
+    <p id="countdown-text" style="color:var(--green);font-weight:600;font-size:0.9rem"></p>
+  </div>
+
+  <a href="index.html" class="back-link">← Back to Login</a>
+</div>
+
+<script>
+  const API = 'https://elimu-pay.onrender.com';
+
+  // Redirect if no token
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'index.html';
+
+  function showMsg(type, text) {
+    const el = document.getElementById('pay-msg');
+    el.className = `msg ${type} show`;
+    el.textContent = text;
+  }
+
+  function setLoading(loading) {
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<span class="spinner"></span>Processing...'
+      : 'Pay KSh 10 via M-Pesa';
+  }
+
+  let pollInterval = null;
+  let pollTimeout = null;
+
+  async function initiatePayment() {
+    let phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
+    if (!phone || phone.length < 9) return showMsg('error', 'Enter a valid Safaricom number (9 digits after +254).');
+
+    // Normalize: remove leading 0
+    if (phone.startsWith('0')) phone = phone.substring(1);
+    const fullPhone = '254' + phone;
+
+    setLoading(true);
+    showMsg('info', 'Sending M-Pesa request to your phone...');
+
+    try {
+      const res = await fetch(`${API}/api/pay/initiate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ phone: fullPhone })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment initiation failed');
+
+      // Show waiting screen
+      document.getElementById('payment-form').style.display = 'none';
+      document.getElementById('checking-status').classList.add('show');
+
+      // Poll for payment confirmation
+      startPolling(data.checkoutRequestId);
+
+    } catch (e) {
+      showMsg('error', e.message);
+      setLoading(false);
+    }
+  }
+
+  function startPolling(checkoutRequestId) {
+    let secondsLeft = 90;
+
+    const countdownEl = document.getElementById('countdown-text');
+    const tick = setInterval(() => {
+      secondsLeft--;
+      countdownEl.textContent = `Waiting... ${secondsLeft}s remaining`;
+      if (secondsLeft <= 0) {
+        clearInterval(tick);
+        clearInterval(pollInterval);
+        showTimeout();
+      }
+    }, 1000);
+
+    pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/pay/status/${checkoutRequestId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.status === 'paid') {
+          clearInterval(tick);
+          clearInterval(pollInterval);
+          localStorage.setItem('accessExpiry', data.expiresAt);
+          window.location.href = 'videos.html';
+        }
+      } catch {}
+    }, 3000);
+  }
+
+  function showTimeout() {
+    document.getElementById('checking-status').classList.remove('show');
+    document.getElementById('payment-form').style.display = 'block';
+    showMsg('error', 'Payment timed out. Please try again.');
+  }
+</script>
+</body>
+</html>
