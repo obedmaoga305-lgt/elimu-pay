@@ -80,15 +80,6 @@ async function getMpesaToken() {
     throw e;
   }
 }
-  const auth = Buffer.from(
-    `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
-  ).toString('base64');
-  const { data } = await axios.get(
-    'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-    { headers: { Authorization: `Basic ${auth}` } }
-  );
-  return data.access_token;
-}
 
 async function stkPush({ phone, amount }) {
   const token = await getMpesaToken();
@@ -197,8 +188,6 @@ app.post('/api/pay/initiate', verifyToken, async (req, res) => {
     console.error('STK push details:', e.response?.data);
     res.status(500).json({ error: 'Payment initiation failed' });
   }
-    
-  
 });
 
 app.post('/api/pay/callback', async (req, res) => {
