@@ -180,8 +180,11 @@ app.post('/api/pay/initiate', verifyToken, async (req, res) => {
     res.json({ message: 'STK push sent', checkoutRequestId: result.CheckoutRequestID });
   } catch (e) {
     console.error('STK push error:', e.message);
+    console.error('STK push details:', e.response?.data);
     res.status(500).json({ error: 'Payment initiation failed' });
   }
+    
+  
 });
 
 app.post('/api/pay/callback', async (req, res) => {
