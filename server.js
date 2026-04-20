@@ -66,9 +66,9 @@ async function checkUserAccess(userId) {
 }
 
 async function getMpesaToken() {
-  const auth = Buffer.from(
-    `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
-  ).toString('base64');
+  const key = process.env.MPESA_CONSUMER_KEY?.trim();
+  const secret = process.env.MPESA_CONSUMER_SECRET?.trim();
+  const auth = Buffer.from(`${key}:${secret}`).toString('base64');
   try {
     const { data } = await axios.get(
       'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
