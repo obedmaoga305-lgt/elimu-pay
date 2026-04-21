@@ -14,171 +14,277 @@
   --danger:#c0392b;--warn:#d4780a;
   --radius:14px;--radius-sm:8px;
 }
-body{font-family:'Outfit',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);}
+body{font-family:'Outfit',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);overflow-x:hidden;}
 
+/* ===================== ANIMATIONS ===================== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
+@keyframes slideLeft{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}33%{transform:translateY(-18px) rotate(4deg)}66%{transform:translateY(-8px) rotate(-3deg)}}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-20px) scale(1.08)}100%{transform:translate(0,0) scale(1)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes pulse-ring{0%{transform:scale(0.9);opacity:0.7}70%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
+@keyframes bounce-in{0%{transform:scale(0.6);opacity:0}60%{transform:scale(1.08)}80%{transform:scale(0.97)}100%{transform:scale(1);opacity:1}}
+@keyframes gradient-shift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes tdot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.45;transform:scale(0.75)}}
+@keyframes badge-glow{0%,100%{box-shadow:0 0 0 0 rgba(26,110,60,0.25)}50%{box-shadow:0 0 0 6px rgba(26,110,60,0)}}
+@keyframes wave{0%,100%{clip-path:ellipse(55% 40% at 50% 60%)}50%{clip-path:ellipse(60% 45% at 50% 55%)}}
+@keyframes cat-pop{0%{transform:scale(0.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes title-reveal{0%{opacity:0;letter-spacing:0.3em;transform:translateY(10px)}100%{opacity:1;letter-spacing:normal;transform:translateY(0)}}
+@keyframes particle-rise{0%{transform:translateY(0) scale(1);opacity:0.7}100%{transform:translateY(-120px) scale(0.3);opacity:0}}
+
+/* ===================== SR ONLY ===================== */
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
 
-/* EXPIRED OVERLAY */
+/* ===================== EXPIRED OVERLAY ===================== */
 #expired-overlay{
   position:fixed;inset:0;z-index:900;
   background:rgba(10,30,15,0.93);
   display:none;flex-direction:column;align-items:center;justify-content:center;
   gap:18px;text-align:center;padding:2rem;
+  backdrop-filter:blur(6px);
 }
-#expired-overlay.show{display:flex;}
-.overlay-icon{font-size:56px;line-height:1;}
-.overlay-h{font-family:'Lora',serif;color:#fff;font-size:2rem;font-weight:700;}
-.overlay-p{color:rgba(255,255,255,0.65);max-width:340px;line-height:1.7;font-size:0.95rem;}
+#expired-overlay.show{display:flex;animation:fadeIn 0.4s ease;}
+.overlay-icon{font-size:56px;line-height:1;animation:bounce-in 0.6s cubic-bezier(.36,.07,.19,.97);}
+.overlay-h{font-family:'Lora',serif;color:#fff;font-size:2rem;font-weight:700;animation:fadeUp 0.5s 0.2s both ease;}
+.overlay-p{color:rgba(255,255,255,0.65);max-width:340px;line-height:1.7;font-size:0.95rem;animation:fadeUp 0.5s 0.35s both ease;}
 .renew-btn{
   margin-top:8px;padding:14px 36px;
   background:var(--gold);color:#fff;border:none;border-radius:100px;
   font-family:'Outfit',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;
-  transition:background 0.2s,transform 0.15s;
+  transition:background 0.2s,transform 0.15s,box-shadow 0.2s;
+  animation:bounce-in 0.6s 0.5s both;
+  box-shadow:0 4px 20px rgba(181,131,26,0.4);
 }
-.renew-btn:hover{background:#8a6010;transform:scale(1.03);}
+.renew-btn:hover{background:#8a6010;transform:scale(1.05);box-shadow:0 6px 28px rgba(181,131,26,0.6);}
 
-/* PLAYER MODAL */
+/* ===================== PLAYER MODAL ===================== */
 #player-modal{
   position:fixed;inset:0;z-index:800;
   background:rgba(5,18,10,0.95);
   display:none;flex-direction:column;align-items:center;justify-content:center;
-  padding:1.5rem;
+  padding:1.5rem;backdrop-filter:blur(8px);
 }
-#player-modal.show{display:flex;}
+#player-modal.show{display:flex;animation:fadeIn 0.3s ease;}
+#player-modal.show .modal-inner{animation:scaleIn 0.4s cubic-bezier(.34,1.56,.64,1);}
 .modal-inner{width:100%;max-width:860px;}
-.modal-top{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px;
-}
+.modal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .modal-title-txt{color:#fff;font-size:1rem;font-weight:600;flex:1;padding-right:12px;}
 .close-btn{
   width:36px;height:36px;border-radius:50%;border:none;
   background:rgba(255,255,255,0.12);color:#fff;
   font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background 0.2s;flex-shrink:0;
+  transition:background 0.2s,transform 0.2s;flex-shrink:0;
 }
-.close-btn:hover{background:rgba(255,255,255,0.25);}
-.video-container{border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;}
+.close-btn:hover{background:rgba(255,255,255,0.25);transform:rotate(90deg);}
+.video-container{border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;box-shadow:0 24px 60px rgba(0,0,0,0.6);}
 .video-container iframe{width:100%;height:100%;border:none;}
 
-/* HEADER */
+/* ===================== HEADER ===================== */
 header{
-  background:var(--green);padding:0 2rem;
+  background:linear-gradient(135deg,#0a3a20 0%,var(--green) 40%,#0f5c30 70%,#0a3a20 100%);
+  background-size:300% 300%;
+  animation:gradient-shift 8s ease infinite;
+  padding:0 2rem;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   height:62px;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 20px rgba(15,76,42,0.4);
+  overflow:hidden;
 }
+/* Floating particles in header */
+header::before,header::after{
+  content:'';position:absolute;border-radius:50%;
+  background:rgba(255,255,255,0.06);pointer-events:none;
+}
+header::before{width:120px;height:120px;top:-40px;left:15%;animation:drift 7s ease-in-out infinite;}
+header::after{width:80px;height:80px;bottom:-30px;right:20%;animation:drift 9s ease-in-out infinite reverse;}
+
 .brand{
   font-family:'Lora',serif;color:#fff;font-size:1.2rem;
   display:flex;align-items:center;gap:10px;flex-shrink:0;
+  animation:slideLeft 0.6s 0.1s both ease;
 }
 .brand-badge{
   background:var(--gold);border-radius:6px;
   padding:3px 9px;font-size:0.85rem;font-weight:600;
   color:#fff;letter-spacing:0.3px;
+  transition:transform 0.2s;
+  display:inline-block;
 }
+.brand:hover .brand-badge{transform:rotate(-5deg) scale(1.1);}
 
-/* TIMER */
-.timer-wrap{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+/* ===================== TIMER ===================== */
+.timer-wrap{display:flex;align-items:center;gap:8px;flex-shrink:0;animation:fadeIn 0.6s 0.3s both;}
 .timer-label{color:rgba(255,255,255,0.6);font-size:0.78rem;white-space:nowrap;}
 .timer{
   display:flex;align-items:center;gap:6px;
-  background:rgba(255,255,255,0.1);border-radius:100px;padding:6px 14px;
+  background:rgba(255,255,255,0.12);border-radius:100px;padding:6px 14px;
+  backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.1);
+  transition:all 0.3s;
 }
 .tdot{
   width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;
   animation:tdot-pulse 1.6s ease-in-out infinite;
+  box-shadow:0 0 6px #4ade80;
 }
-@keyframes tdot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.45;transform:scale(0.75)}}
 .ttime{color:#fff;font-size:0.9rem;font-weight:600;font-variant-numeric:tabular-nums;min-width:42px;}
-.timer.warn .tdot{background:#fbbf24;}
-.timer.danger .tdot{background:#f87171;animation-duration:0.5s;}
+.timer.warn .tdot{background:#fbbf24;box-shadow:0 0 6px #fbbf24;}
+.timer.danger .tdot{background:#f87171;animation-duration:0.5s;box-shadow:0 0 8px #f87171;}
 .timer.danger .ttime{color:#fca5a5;}
+.timer.danger{animation:pulse-ring 1s ease-out infinite,gradient-shift 1s linear infinite;}
 
-/* USER AREA */
-.user-area{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+/* ===================== USER AREA ===================== */
+.user-area{display:flex;align-items:center;gap:10px;flex-shrink:0;animation:fadeIn 0.6s 0.4s both;}
 .avatar{
   width:34px;height:34px;border-radius:50%;
-  background:var(--gold);color:#fff;font-weight:600;font-size:0.82rem;
+  background:linear-gradient(135deg,var(--gold),#d4a030);color:#fff;font-weight:600;font-size:0.82rem;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  transition:transform 0.2s;
 }
+.avatar:hover{transform:scale(1.1);}
 .uname{color:rgba(255,255,255,0.8);font-size:0.85rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .logout-btn{
   background:none;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);
   font-family:'Outfit',sans-serif;font-size:0.78rem;padding:5px 12px;
   border-radius:100px;cursor:pointer;transition:all 0.2s;
 }
-.logout-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.logout-btn:hover{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.5);transform:scale(1.04);}
 
-/* PAGE */
+/* ===================== PAGE ===================== */
 .page{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
-.page-header{margin-bottom:1.8rem;}
-.page-title{font-family:'Lora',serif;font-size:2rem;font-weight:700;color:var(--text);margin-bottom:4px;}
-.page-sub{color:var(--muted);font-size:0.9rem;}
 
-/* VALIDATION BADGE */
+.page-header{margin-bottom:1.8rem;animation:fadeUp 0.7s 0.2s both ease;}
+.page-title{
+  font-family:'Lora',serif;font-size:2rem;font-weight:700;color:var(--text);margin-bottom:4px;
+  animation:title-reveal 0.8s 0.3s both ease;
+}
+.page-sub{color:var(--muted);font-size:0.9rem;animation:fadeUp 0.6s 0.5s both ease;}
+
+/* ===================== BADGE ===================== */
 .access-badge{
   display:inline-flex;align-items:center;gap:6px;
   background:var(--green-faint);border:1px solid var(--green-light);
   border-radius:100px;padding:5px 14px;font-size:0.8rem;
   color:var(--green-mid);font-weight:500;margin-top:8px;
+  animation:badge-glow 2.5s ease-in-out infinite, fadeIn 0.5s 0.7s both;
+  transition:all 0.3s;
 }
-.access-dot{width:7px;height:7px;border-radius:50%;background:var(--green-mid);}
+.access-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green-mid);
+  box-shadow:0 0 4px var(--green-mid);
+  animation:tdot-pulse 2s ease-in-out infinite;
+}
 
-/* CATEGORIES */
+/* ===================== CATEGORIES ===================== */
 .categories{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.8rem;}
 .cat-btn{
   padding:7px 18px;border-radius:100px;
   border:1.5px solid var(--border);background:var(--white);color:var(--muted);
   font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:500;
-  cursor:pointer;transition:all 0.15s;
+  cursor:pointer;transition:all 0.2s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;
 }
-.cat-btn:hover{border-color:var(--green-mid);color:var(--green);}
-.cat-btn.active{background:var(--green);color:#fff;border-color:var(--green);}
+.cat-btn::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center,rgba(15,76,42,0.08) 0%,transparent 70%);
+  opacity:0;transition:opacity 0.3s;
+}
+.cat-btn:hover{border-color:var(--green-mid);color:var(--green);transform:translateY(-2px);box-shadow:0 4px 12px rgba(15,76,42,0.12);}
+.cat-btn:hover::after{opacity:1;}
+.cat-btn:active{transform:scale(0.95);}
+.cat-btn.active{background:linear-gradient(135deg,var(--green-mid),var(--green));color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(15,76,42,0.35);}
 
-/* VIDEO GRID */
+/* ===================== VIDEO GRID ===================== */
 .video-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
   gap:18px;
 }
+
+/* Card entrance animation via JS class */
 .video-card{
   background:var(--white);border-radius:var(--radius);
   overflow:hidden;cursor:pointer;
   border:1px solid var(--border);
-  transition:transform 0.2s,box-shadow 0.2s;
+  transition:transform 0.3s cubic-bezier(.34,1.2,.64,1),box-shadow 0.3s,border-color 0.2s;
   position:relative;
+  opacity:0;
+  transform:translateY(30px);
 }
-.video-card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,0.1);}
+.video-card.card-visible{
+  animation:fadeUp 0.55s both ease;
+}
+.video-card:hover{
+  transform:translateY(-6px) scale(1.01);
+  box-shadow:0 16px 40px rgba(0,0,0,0.12);
+  border-color:var(--green-light);
+}
 .video-card:focus-visible{outline:3px solid var(--green);outline-offset:2px;}
 
+/* Shine sweep on hover */
+.video-card::before{
+  content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.22) 60%,transparent 80%);
+  transition:left 0.5s ease;z-index:2;pointer-events:none;
+}
+.video-card:hover::before{left:160%;}
+
+/* ===================== THUMBNAIL ===================== */
 .thumb{
   width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
 }
-.thumb-bg{position:absolute;inset:0;transition:filter 0.2s;}
-.video-card:hover .thumb-bg{filter:brightness(0.85);}
+.thumb-bg{position:absolute;inset:0;transition:filter 0.3s,transform 0.4s;}
+.video-card:hover .thumb-bg{filter:brightness(0.8);transform:scale(1.05);}
+
+/* Shimmer skeleton on thumb before load */
+.thumb-shimmer{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);
+  background-size:400px 100%;
+  animation:shimmer 2s infinite;
+}
+
 .play-overlay{
   position:relative;z-index:1;
   width:52px;height:52px;border-radius:50%;
   background:rgba(255,255,255,0.92);
   display:flex;align-items:center;justify-content:center;
-  transition:transform 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.2);
+  transition:transform 0.25s cubic-bezier(.34,1.56,.64,1),box-shadow 0.25s;
+  box-shadow:0 2px 16px rgba(0,0,0,0.25);
 }
-.video-card:hover .play-overlay{transform:scale(1.1);}
+/* Pulse ring behind play button */
+.play-overlay::before{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.6);
+  animation:pulse-ring 2s ease-out infinite;
+}
+.video-card:hover .play-overlay{
+  transform:scale(1.15);
+  box-shadow:0 6px 24px rgba(0,0,0,0.35);
+}
 .play-icon{
   width:0;height:0;
   border-style:solid;border-width:9px 0 9px 18px;
   border-color:transparent transparent transparent #222;
   margin-left:3px;
+  transition:border-color 0.2s;
 }
+.video-card:hover .play-icon{border-color:transparent transparent transparent var(--green);}
 
+/* ===================== CARD INFO ===================== */
 .video-info{padding:14px 16px 16px;}
 .video-subject{
   display:inline-block;
   padding:3px 10px;border-radius:100px;
   font-size:0.73rem;font-weight:600;letter-spacing:0.4px;
   margin-bottom:8px;text-transform:uppercase;
+  transition:transform 0.2s;
 }
+.video-card:hover .video-subject{transform:scale(1.04);}
 .subj-Mathematics{background:#e8f5ee;color:#0f4c2a;}
 .subj-Science{background:#ede8fb;color:#3c2a8a;}
 .subj-English{background:#e6f1fb;color:#0c447c;}
@@ -188,18 +294,31 @@ header{
 .video-title{font-weight:600;font-size:0.95rem;color:var(--text);margin-bottom:6px;line-height:1.4;}
 .video-meta{color:var(--muted);font-size:0.78rem;display:flex;gap:14px;}
 
-/* LOADING / EMPTY */
+/* ===================== LOADING / EMPTY ===================== */
 .loading-grid{display:flex;flex-direction:column;gap:12px;align-items:center;padding:3rem;color:var(--muted);}
 .spinner{
   width:36px;height:36px;border:3px solid var(--border);
   border-top-color:var(--green);border-radius:50%;
   animation:spin 0.8s linear infinite;
 }
-@keyframes spin{to{transform:rotate(360deg)}}
 .empty-state{padding:3rem;text-align:center;color:var(--muted);}
+
+/* ===================== FLOATING PARTICLES (page bg) ===================== */
+.particles{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.particle{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle,rgba(15,76,42,0.12),transparent);
+  animation:float linear infinite;
+}
+
+/* ===================== PAGE WRAPPER Z ===================== */
+.page{position:relative;z-index:1;}
 </style>
 </head>
 <body>
+
+<!-- FLOATING BACKGROUND PARTICLES -->
+<div class="particles" aria-hidden="true" id="particles"></div>
 
 <h2 class="sr-only">ElimuPay Learn — Educational Video Library</h2>
 
@@ -269,18 +388,53 @@ header{
 </main>
 
 <script>
+/* ---- FLOATING BACKGROUND PARTICLES ---- */
+(function(){
+  var container = document.getElementById('particles');
+  for(var i=0;i<14;i++){
+    var p = document.createElement('div');
+    p.className='particle';
+    var size = 40 + Math.random()*120;
+    p.style.cssText=[
+      'width:'+size+'px',
+      'height:'+size+'px',
+      'left:'+(Math.random()*100)+'%',
+      'top:'+(Math.random()*100)+'%',
+      'animation-duration:'+(8+Math.random()*12)+'s',
+      'animation-delay:'+(-Math.random()*10)+'s',
+      'opacity:'+(0.3+Math.random()*0.4)
+    ].join(';');
+    container.appendChild(p);
+  }
+})();
+
+/* ---- CAT BUTTON STAGGER ANIMATION ---- */
+function animateCatButtons(){
+  document.querySelectorAll('.cat-btn').forEach(function(btn,i){
+    btn.style.opacity='0';
+    btn.style.transform='translateY(10px)';
+    setTimeout(function(){
+      btn.style.transition='opacity 0.35s ease, transform 0.35s cubic-bezier(.34,1.56,.64,1)';
+      btn.style.opacity='1';
+      btn.style.transform='translateY(0)';
+    }, i*55);
+  });
+}
+
+/* ---- CARD STAGGER ANIMATION ---- */
+function animateCards(){
+  document.querySelectorAll('.video-card').forEach(function(card,i){
+    card.style.animationDelay=(i*80)+'ms';
+    setTimeout(function(){ card.classList.add('card-visible'); }, i*80);
+  });
+}
+
 (function(){
   'use strict';
 
-  /* ============================================================
-     CONFIGURATION — change these to match your backend
-  ============================================================ */
   const API = 'https://elimu-pay.onrender.com';
-  const REVALIDATE_INTERVAL_MS = 60000; // re-check access every 60 seconds
+  const REVALIDATE_INTERVAL_MS = 60000;
 
-  /* ============================================================
-     VIDEO LIBRARY — replace youtubeId values with your real IDs
-  ============================================================ */
   const VIDEOS = [
     { id:1,  title:'Introduction to Algebra',             subject:'Mathematics', duration:'14:32', tutor:'Mr. Kamau',    youtubeId:'NybHckSEQBI', color:'#1a5c38' },
     { id:2,  title:'Human Body Systems Explained',        subject:'Science',     duration:'18:10', tutor:'Mrs. Wanjiru', youtubeId:'Ae4MadKPJhg', color:'#3c2a8a' },
@@ -298,9 +452,6 @@ header{
 
   const SUBJECTS = ['All Subjects','Mathematics','Science','English','History','Kiswahili'];
 
-  /* ============================================================
-     BOOT
-  ============================================================ */
   const token    = localStorage.getItem('token');
   const username = localStorage.getItem('username') || 'User';
 
@@ -325,9 +476,6 @@ header{
 
   initialAccess();
 
-  /* ============================================================
-     AUTH & SESSION
-  ============================================================ */
   function redirect(path){ window.location.href = path; }
 
   function logout(){
@@ -348,7 +496,7 @@ header{
 
   function startTimer(expiresAt){
     sessionExpiresAt = expiresAt;
-    var timerEl  = document.getElementById('timer');
+    var timerEl   = document.getElementById('timer');
     var displayEl = document.getElementById('timer-display');
     clearInterval(timerInterval);
     timerInterval = setInterval(function(){
@@ -391,13 +539,10 @@ header{
     revalidateInterval = setInterval(async function(){
       var newExp = await checkAccess();
       if (!newExp){ showExpired(); return; }
-      sessionExpiresAt = newExp; // sync from server
+      sessionExpiresAt = newExp;
     }, REVALIDATE_INTERVAL_MS);
   }
 
-  /* ============================================================
-     CATEGORIES
-  ============================================================ */
   function renderCategories(){
     var group = document.getElementById('cat-group');
     group.innerHTML = SUBJECTS.map(function(s){
@@ -405,6 +550,7 @@ header{
       var active = val === currentFilter ? ' active' : '';
       return '<button class="cat-btn' + active + '" data-filter="' + escAttr(val) + '">' + escHtml(s) + '</button>';
     }).join('');
+    animateCatButtons();
     group.addEventListener('click', function(e){
       var btn = e.target.closest('.cat-btn');
       if (!btn) return;
@@ -415,9 +561,6 @@ header{
     });
   }
 
-  /* ============================================================
-     VIDEOS
-  ============================================================ */
   function escAttr(s){ return String(s).replace(/[&"<>]/g,function(c){return{'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c];}); }
   function escHtml(s){ return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
@@ -429,7 +572,7 @@ header{
     var grid = document.getElementById('video-grid');
 
     if (!filtered.length){
-      grid.innerHTML = '<div class="empty-state">No videos found for this subject.</div>';
+      grid.innerHTML = '<div class="empty-state" style="animation:fadeUp 0.4s both ease;">No videos found for this subject.</div>';
       return;
     }
 
@@ -440,6 +583,7 @@ header{
         + ' aria-label="Watch ' + escAttr(v.title) + ', ' + escAttr(v.duration) + '">'
         + '<div class="thumb">'
         +   '<div class="thumb-bg" style="position:absolute;inset:0;background:' + escAttr(v.color) + ';"></div>'
+        +   '<div class="thumb-shimmer"></div>'
         +   '<div class="play-overlay" aria-hidden="true"><div class="play-icon"></div></div>'
         + '</div>'
         + '<div class="video-info">'
@@ -453,6 +597,8 @@ header{
         + '</div>';
     }).join('');
 
+    animateCards();
+
     grid.querySelectorAll('.video-card').forEach(function(card){
       function activate(){
         if (document.getElementById('expired-overlay').classList.contains('show')) return;
@@ -465,9 +611,6 @@ header{
     });
   }
 
-  /* ============================================================
-     VIDEO PLAYER
-  ============================================================ */
   function playVideo(youtubeId, title){
     document.getElementById('modal-title-el').textContent = title;
     document.getElementById('video-iframe').src =
