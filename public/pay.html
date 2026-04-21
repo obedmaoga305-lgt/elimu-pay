@@ -4,259 +4,564 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ElimuPay — Pay to Learn</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --green: #1a5c38; --green-light: #e8f5ee;
-      --gold: #c8922a; --gold-light: #fdf3e3;
-      --mpesa: #00a651;
-      --text: #1a1a1a; --muted: #6b7280; --border: #d1d5db; --white: #ffffff;
+      --green:       #0f4c2a;
+      --green-mid:   #1a6b3c;
+      --green-light: #e6f4ec;
+      --gold:        #d4a017;
+      --gold-glow:   rgba(212,160,23,0.25);
+      --mpesa:       #00a651;
+      --mpesa-dark:  #008040;
+      --mpesa-glow:  rgba(0,166,81,0.2);
+      --text:        #111;
+      --muted:       #6b7280;
+      --border:      #e2e8f0;
+      --white:       #ffffff;
+      --bg:          #f5f3ee;
     }
+
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: #f7f6f2;
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
       min-height: 100vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
     }
 
-    .logo { font-family:'Playfair Display',serif; color:var(--green); font-size:1.4rem; margin-bottom:2rem; display:flex; align-items:center; gap:8px; }
-    .logo span { background:var(--gold); border-radius:8px; padding:4px 8px; font-size:1.1rem; }
-
-    .card {
-      background: var(--white);
-      border-radius: 20px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
-      padding: 2.5rem;
-      width: 100%; max-width: 420px;
+    /* ── Background orbs ── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(70px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: rgba(15,76,42,0.1);
+      top: -150px; left: -150px;
+      animation: floatOrb 14s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: rgba(0,166,81,0.08);
+      bottom: -120px; right: -120px;
+      animation: floatOrb 10s ease-in-out infinite reverse;
+    }
+    @keyframes floatOrb {
+      0%,100% { transform: translate(0,0); }
+      50%      { transform: translate(30px,-30px); }
     }
 
-    .access-badge {
+    /* ── Nav bar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 10;
+      background: rgba(245,243,238,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .brand {
       display: flex; align-items: center; gap: 10px;
-      background: var(--gold-light);
-      border: 1px solid #e8c97a;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 2rem;
+      text-decoration: none;
     }
-    .access-badge .icon { font-size: 28px; }
-    .access-badge .info strong { display:block; color:var(--text); font-size:1rem; margin-bottom:2px; }
-    .access-badge .info span { color: var(--muted); font-size:0.85rem; }
+    .brand-icon {
+      width: 38px; height: 38px;
+      background: var(--gold);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+    .brand-name {
+      font-family: 'Fraunces', serif;
+      color: var(--green); font-size: 1.3rem; font-weight: 900;
+    }
+    .back-btn {
+      font-size: 0.85rem; color: var(--muted);
+      text-decoration: none; font-weight: 500;
+      display: flex; align-items: center; gap: 5px;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--green); }
 
-    .price-display {
-      text-align: center;
-      padding: 1.5rem;
+    /* ── Main layout ── */
+    .main {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 480px;
+      margin-top: 80px;
+      animation: slideUp 0.65s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(36px) scale(0.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    /* ── Value card ── */
+    .value-card {
       background: var(--green);
-      border-radius: 14px;
-      margin-bottom: 2rem;
+      border-radius: 20px 20px 0 0;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
     }
-    .price-display .label { color: rgba(255,255,255,0.7); font-size:0.85rem; margin-bottom:4px; }
-    .price-display .amount { color:#fff; font-size:2.8rem; font-weight:700; font-family:'Playfair Display',serif; }
-    .price-display .sub { color: rgba(255,255,255,0.6); font-size:0.8rem; margin-top:4px; }
-
-    h3 { font-size:1rem; font-weight:600; color:var(--text); margin-bottom:1rem; }
-
-    .form-group { margin-bottom:1.2rem; }
-    .form-group label { display:block; font-size:0.85rem; font-weight:500; color:var(--text); margin-bottom:6px; }
-    .phone-input-wrap { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; transition: border-color 0.2s, box-shadow 0.2s; }
-    .phone-input-wrap:focus-within { border-color:var(--mpesa); box-shadow:0 0 0 3px rgba(0,166,81,0.1); }
-    .phone-prefix {
-      padding: 11px 12px; background: #f3f4f6;
-      border-right: 1.5px solid var(--border);
-      font-size:0.9rem; font-weight:600; color:var(--mpesa);
-      white-space: nowrap;
+    .value-card::before {
+      content: '';
+      position: absolute;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      border: 50px solid rgba(255,255,255,0.05);
+      bottom: -80px; right: -60px;
     }
-    .phone-input-wrap input {
-      flex:1; padding:11px 14px; border:none; outline:none;
-      font-family:'DM Sans',sans-serif; font-size:0.95rem; color:var(--text);
-      background: transparent;
+    .value-card .dot-grid {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 22px 22px;
+      pointer-events: none;
     }
 
-    .mpesa-badge {
+    .value-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.4rem; position: relative; z-index: 1;
+    }
+    .access-label {
       display: flex; align-items: center; gap: 8px;
-      padding: 10px 14px; background: #f0faf4;
-      border: 1px solid #a7dfc0; border-radius:10px;
-      margin-bottom: 1.5rem;
-      font-size:0.85rem; color: #166534;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      padding: 6px 14px; border-radius: 100px;
+      font-size: 0.82rem; font-weight: 500;
     }
-    .mpesa-badge strong { color: var(--mpesa); }
+    .price-tag {
+      background: var(--gold);
+      color: #fff;
+      padding: 6px 16px; border-radius: 100px;
+      font-size: 0.9rem; font-weight: 700;
+      box-shadow: 0 4px 16px var(--gold-glow);
+      animation: pulseBadge 2.5s ease-in-out infinite;
+    }
+    @keyframes pulseBadge {
+      0%,100% { box-shadow: 0 4px 16px var(--gold-glow); }
+      50%      { box-shadow: 0 4px 28px rgba(212,160,23,0.45); }
+    }
 
-    .btn-pay {
-      width:100%; padding:14px;
-      background: var(--mpesa); color:#fff;
-      border:none; border-radius:12px;
-      font-family:'DM Sans',sans-serif;
-      font-size:1rem; font-weight:600;
-      cursor:pointer; transition: background 0.2s, transform 0.1s;
+    .amount-display { position: relative; z-index: 1; }
+    .amount-display .ksh {
+      font-family: 'Fraunces', serif;
+      font-size: 3.6rem; font-weight: 900;
+      color: #fff; line-height: 1;
+      letter-spacing: -2px;
     }
-    .btn-pay:hover { background:#008f45; }
-    .btn-pay:active { transform:scale(0.99); }
-    .btn-pay:disabled { background:#9ca3af; cursor:not-allowed; }
+    .amount-display .ksh span {
+      font-size: 1.4rem; font-weight: 400;
+      vertical-align: super; letter-spacing: 0;
+      color: rgba(255,255,255,0.7);
+    }
+    .amount-display .sub {
+      color: rgba(255,255,255,0.55);
+      font-size: 0.85rem; margin-top: 6px; font-weight: 300;
+    }
 
-    .msg {
-      padding:10px 14px; border-radius:8px;
-      font-size:0.875rem; margin-bottom:1rem; display:none;
+    .perks {
+      display: flex; gap: 10px; margin-top: 1.4rem;
+      position: relative; z-index: 1;
+      flex-wrap: wrap;
     }
-    .msg.error { background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
-    .msg.success { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
-    .msg.info { background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; }
-    .msg.show { display:block; }
+    .perk {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.85);
+      padding: 6px 12px; border-radius: 8px;
+      font-size: 0.8rem;
+    }
 
-    .status-checking {
-      text-align:center; padding:1.5rem;
-      display:none; flex-direction:column; align-items:center; gap:12px;
+    /* ── Payment card ── */
+    .pay-card {
+      background: var(--white);
+      border-radius: 0 0 20px 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
     }
-    .status-checking.show { display:flex; }
-    .pulse-ring {
-      width:50px; height:50px;
-      border-radius:50%; border:3px solid var(--mpesa);
-      border-top-color:transparent;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform:rotate(360deg); } }
 
+    .section-title {
+      font-size: 0.82rem; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 1rem;
+    }
+
+    /* Phone input */
+    .phone-wrap {
+      display: flex; align-items: center;
+      border: 2px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 1.2rem;
+    }
+    .phone-wrap:focus-within {
+      border-color: var(--mpesa);
+      box-shadow: 0 0 0 4px var(--mpesa-glow);
+    }
+    .phone-flag {
+      padding: 12px 14px;
+      background: #f8fafc;
+      border-right: 2px solid var(--border);
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--mpesa);
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .phone-flag .fi { font-size: 1.1rem; }
+    .phone-wrap input {
+      flex: 1; padding: 13px 14px;
+      border: none; outline: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem; color: var(--text);
+      background: transparent;
+      letter-spacing: 0.04em;
+    }
+    .phone-wrap input::placeholder { color: #c4cdd8; letter-spacing: 0; }
+
+    /* M-Pesa trust badge */
+    .mpesa-trust {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      background: linear-gradient(135deg, #f0faf4, #e8f9f0);
+      border: 1px solid #b2dfc4;
+      border-radius: 10px;
+      margin-bottom: 1.4rem;
+    }
+    .mpesa-trust .m-icon { font-size: 1.5rem; }
+    .mpesa-trust .m-text { font-size: 0.82rem; color: #15803d; line-height: 1.5; }
+    .mpesa-trust .m-text strong { color: var(--mpesa); font-weight: 700; }
+
+    /* Steps */
     .steps {
-      list-style:none; counter-reset:step;
-      display:flex; flex-direction:column; gap:10px;
-      margin-bottom:1.5rem;
+      list-style: none;
+      display: flex; flex-direction: column; gap: 9px;
+      margin-bottom: 1.6rem;
     }
     .steps li {
-      counter-increment:step;
-      display:flex; gap:10px; align-items:flex-start;
-      font-size:0.85rem; color:var(--muted);
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 0.84rem; color: var(--muted);
     }
-    .steps li::before {
-      content:counter(step);
-      min-width:22px; height:22px; border-radius:50%;
-      background:var(--green-light); color:var(--green);
-      font-size:0.75rem; font-weight:600;
-      display:flex; align-items:center; justify-content:center;
-      flex-shrink:0; margin-top:1px;
+    .step-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--green-light); color: var(--green);
+      font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
     }
 
-    .back-link {
-      display:block; text-align:center; margin-top:1.5rem;
-      color:var(--muted); font-size:0.85rem; text-decoration:none;
+    /* Pay button */
+    .btn-pay {
+      width: 100%; padding: 15px;
+      background: var(--mpesa); color: #fff;
+      border: none; border-radius: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.01em;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .back-link:hover { color:var(--green); }
+    .btn-pay:hover {
+      background: var(--mpesa-dark);
+      box-shadow: 0 8px 24px var(--mpesa-glow);
+      transform: translateY(-1px);
+    }
+    .btn-pay:active { transform: scale(0.99) translateY(0); }
+    .btn-pay:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
 
-    .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; margin-right:6px; vertical-align:middle; }
+    /* Messages */
+    .msg {
+      padding: 11px 14px; border-radius: 10px;
+      font-size: 0.865rem; margin-bottom: 1rem;
+      display: none; animation: msgPop 0.3s cubic-bezier(0.22,1,0.36,1);
+    }
+    .msg.error   { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+    .msg.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .msg.info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .msg.show    { display: block; }
+    @keyframes msgPop {
+      from { opacity:0; transform:scale(0.95); }
+      to   { opacity:1; transform:scale(1); }
+    }
+
+    /* ── Waiting screen ── */
+    .waiting-screen {
+      display: none; flex-direction: column; align-items: center;
+      text-align: center; padding: 1rem 0 0.5rem;
+      animation: fadeIn 0.4s ease;
+    }
+    .waiting-screen.show { display: flex; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+    .phone-anim {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--green-light), #c8f0d8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; margin-bottom: 1.2rem;
+      animation: phonePulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 0 0 var(--mpesa-glow);
+    }
+    @keyframes phonePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(0,166,81,0.35); transform: scale(1); }
+      50%  { box-shadow: 0 0 0 18px rgba(0,166,81,0); transform: scale(1.05); }
+      100% { box-shadow: 0 0 0 0 rgba(0,166,81,0); transform: scale(1); }
+    }
+
+    .waiting-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.3rem; color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .waiting-sub {
+      color: var(--muted); font-size: 0.87rem;
+      line-height: 1.6; margin-bottom: 1rem;
+    }
+
+    .countdown-bar-wrap {
+      width: 100%; background: #f3f4f6;
+      border-radius: 100px; height: 6px;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .countdown-bar {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, var(--mpesa), #34d399);
+      transition: width 1s linear;
+    }
+    .countdown-text {
+      font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem;
+    }
+
+    .cancel-btn {
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 9px 20px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem; color: var(--muted);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .cancel-btn:hover { border-color: #dc2626; color: #dc2626; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Success overlay */
+    .success-overlay {
+      display: none; flex-direction: column; align-items: center;
+      text-align: center; padding: 1rem 0;
+      animation: fadeIn 0.5s ease;
+    }
+    .success-overlay.show { display: flex; }
+    .success-icon {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem; margin-bottom: 1rem;
+      animation: popIn 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .success-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.4rem; color: var(--green);
+      margin-bottom: 0.3rem;
+    }
+    .success-sub { color: var(--muted); font-size: 0.87rem; margin-bottom: 1.2rem; }
+
+    /* Responsive */
+    @media (max-width: 520px) {
+      .pay-card { padding: 1.5rem; }
+      .value-card { padding: 1.5rem; }
+      .amount-display .ksh { font-size: 2.8rem; }
+    }
   </style>
 </head>
 <body>
 
-<div class="logo"><span>📚</span> ElimuPay</div>
+<!-- ── Top Bar ── -->
+<div class="topbar">
+  <a href="index.html" class="brand">
+    <div class="brand-icon">📚</div>
+    <span class="brand-name">ElimuPay</span>
+  </a>
+  <a href="index.html" class="back-btn">← Back to login</a>
+</div>
 
-<div class="card">
-  <div class="access-badge">
-    <div class="icon">⏱️</div>
-    <div class="info">
-      <strong>30 Minutes of Full Access</strong>
-      <span>Watch all videos, unlimited, for 30 minutes</span>
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Value proposition -->
+  <div class="value-card">
+    <div class="dot-grid"></div>
+    <div class="value-top">
+      <div class="access-label">⏱️ 30-Minute Full Access</div>
+      <div class="price-tag">KSh 10 only</div>
+    </div>
+    <div class="amount-display">
+      <div class="ksh"><span>KSh</span> 10</div>
+      <div class="sub">One-time payment · Instant access · No subscription</div>
+    </div>
+    <div class="perks">
+      <div class="perk">🎬 All videos</div>
+      <div class="perk">📱 M-Pesa secure</div>
+      <div class="perk">⚡ Instant unlock</div>
     </div>
   </div>
 
-  <div class="price-display">
-    <div class="label">Pay once today</div>
-    <div class="amount">KSh 10</div>
-    <div class="sub">via M-Pesa · Instant access</div>
-  </div>
+  <!-- Payment form -->
+  <div class="pay-card">
 
-  <div id="payment-form">
-    <h3>Enter your M-Pesa number</h3>
+    <!-- PAYMENT FORM STATE -->
+    <div id="form-state">
+      <p class="section-title">Enter M-Pesa number</p>
 
-    <div class="msg" id="pay-msg"></div>
+      <div class="msg" id="pay-msg"></div>
 
-    <div class="form-group">
-      <label>Phone Number</label>
-      <div class="phone-input-wrap">
-        <span class="phone-prefix">+254</span>
-        <input type="tel" id="phone" placeholder="7XX XXX XXX" maxlength="9" inputmode="numeric" />
+      <div class="phone-wrap">
+        <div class="phone-flag">
+          <span class="fi">🇰🇪</span> +254
+        </div>
+        <input
+          type="tel"
+          id="phone"
+          placeholder="7XX XXX XXX"
+          maxlength="9"
+          inputmode="numeric"
+        />
       </div>
+
+      <div class="mpesa-trust">
+        <span class="m-icon">🔒</span>
+        <div class="m-text">
+          Secure payment via <strong>M-Pesa</strong> — you'll receive a push notification on your phone to confirm with your PIN.
+        </div>
+      </div>
+
+      <ul class="steps">
+        <li><div class="step-num">1</div> Click "Pay" — an M-Pesa prompt will appear on your phone</li>
+        <li><div class="step-num">2</div> Enter your M-Pesa PIN to confirm the KSh 10 payment</li>
+        <li><div class="step-num">3</div> You'll be taken to the videos automatically 🎉</li>
+      </ul>
+
+      <button class="btn-pay" id="pay-btn" onclick="initiatePayment()">
+        📱 Pay KSh 10 via M-Pesa
+      </button>
     </div>
 
-    <div class="mpesa-badge">
-      🔒 Secure payment via <strong>M-Pesa</strong> · You will get a push notification
+    <!-- WAITING STATE -->
+    <div class="waiting-screen" id="waiting-state">
+      <div class="phone-anim">📲</div>
+      <div class="waiting-title">Check your phone</div>
+      <p class="waiting-sub">
+        An M-Pesa prompt has been sent to your phone.<br/>
+        Enter your PIN to complete the payment.
+      </p>
+      <div class="countdown-bar-wrap">
+        <div class="countdown-bar" id="countdown-bar" style="width:100%"></div>
+      </div>
+      <p class="countdown-text" id="countdown-text">90 seconds remaining</p>
+      <button class="cancel-btn" onclick="cancelPayment()">Cancel</button>
     </div>
 
-    <ul class="steps">
-      <li>Click Pay and enter your M-Pesa PIN on your phone</li>
-      <li>Wait for the M-Pesa confirmation SMS</li>
-      <li>You'll be taken to the videos automatically</li>
-    </ul>
+    <!-- SUCCESS STATE -->
+    <div class="success-overlay" id="success-state">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Payment Confirmed!</div>
+      <p class="success-sub">Taking you to your videos now…</p>
+      <div class="spinner" style="border-top-color: var(--mpesa); border-color: rgba(0,166,81,0.3);"></div>
+    </div>
 
-    <button class="btn-pay" id="pay-btn" onclick="initiatePayment()">
-      Pay KSh 10 via M-Pesa
-    </button>
   </div>
-
-  <div class="status-checking" id="checking-status">
-    <div class="pulse-ring"></div>
-    <strong style="color:var(--text)">Waiting for your M-Pesa PIN...</strong>
-    <p style="color:var(--muted);font-size:0.85rem;text-align:center">
-      Check your phone for the M-Pesa prompt.<br/>Enter your PIN to complete payment.
-    </p>
-    <p id="countdown-text" style="color:var(--green);font-weight:600;font-size:0.9rem"></p>
-  </div>
-
-  <a href="index.html" class="back-link">← Back to Login</a>
 </div>
 
 <script>
-  const API = 'https://elimu-pay.onrender.com';
-
-  // Redirect if no token
+  const API   = 'https://elimu-pay.onrender.com';
   const token = localStorage.getItem('token');
   if (!token) window.location.href = 'index.html';
 
+  // ── UI helpers ──
   function showMsg(type, text) {
     const el = document.getElementById('pay-msg');
     el.className = `msg ${type} show`;
     el.textContent = text;
   }
+  function clearMsg() {
+    const el = document.getElementById('pay-msg');
+    el.className = 'msg';
+    el.textContent = '';
+  }
+
+  function setState(state) {
+    document.getElementById('form-state').style.display    = state === 'form'    ? 'block' : 'none';
+    document.getElementById('waiting-state').classList.toggle('show', state === 'waiting');
+    document.getElementById('success-state').classList.toggle('show', state === 'success');
+  }
 
   function setLoading(loading) {
     const btn = document.getElementById('pay-btn');
-    btn.disabled = loading;
+    btn.disabled  = loading;
     btn.innerHTML = loading
-      ? '<span class="spinner"></span>Processing...'
-      : 'Pay KSh 10 via M-Pesa';
+      ? '<span class="spinner"></span> Processing…'
+      : '📱 Pay KSh 10 via M-Pesa';
   }
 
+  // ── Polling state ──
   let pollInterval = null;
-  let pollTimeout = null;
+  let countdownInterval = null;
+  let currentCheckoutId = null;
 
+  // ── Initiate payment ──
   async function initiatePayment() {
+    clearMsg();
     let phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
-    if (!phone || phone.length < 9) return showMsg('error', 'Enter a valid Safaricom number (9 digits after +254).');
-
-    // Normalize: remove leading 0
-    if (phone.startsWith('0')) phone = phone.substring(1);
+    if (!phone || phone.length < 9) {
+      return showMsg('error', 'Enter a valid Safaricom number (9 digits after +254).');
+    }
+    if (phone.startsWith('0')) phone = phone.slice(1);
     const fullPhone = '254' + phone;
 
     setLoading(true);
-    showMsg('info', 'Sending M-Pesa request to your phone...');
+    showMsg('info', 'Sending M-Pesa push to your phone…');
 
     try {
       const res = await fetch(`${API}/api/pay/initiate`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ phone: fullPhone })
+        body: JSON.stringify({ phone: fullPhone }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Payment initiation failed');
 
-      // Show waiting screen
-      document.getElementById('payment-form').style.display = 'none';
-      document.getElementById('checking-status').classList.add('show');
-
-      // Poll for payment confirmation
-      startPolling(data.checkoutRequestId);
+      currentCheckoutId = data.checkoutRequestId;
+      setState('waiting');
+      startPolling(currentCheckoutId);
 
     } catch (e) {
       showMsg('error', e.message);
@@ -264,41 +569,65 @@
     }
   }
 
+  // ── Countdown + polling ──
   function startPolling(checkoutRequestId) {
-    let secondsLeft = 90;
+    const TOTAL = 90;
+    let secondsLeft = TOTAL;
 
-    const countdownEl = document.getElementById('countdown-text');
-    const tick = setInterval(() => {
+    const bar  = document.getElementById('countdown-bar');
+    const text = document.getElementById('countdown-text');
+
+    countdownInterval = setInterval(() => {
       secondsLeft--;
-      countdownEl.textContent = `Waiting... ${secondsLeft}s remaining`;
+      const pct = (secondsLeft / TOTAL) * 100;
+      bar.style.width = pct + '%';
+      text.textContent = `${secondsLeft} second${secondsLeft !== 1 ? 's' : ''} remaining`;
+
       if (secondsLeft <= 0) {
-        clearInterval(tick);
-        clearInterval(pollInterval);
-        showTimeout();
+        stopPolling();
+        setState('form');
+        setLoading(false);
+        showMsg('error', 'Payment timed out. Please try again.');
       }
     }, 1000);
 
     pollInterval = setInterval(async () => {
       try {
         const res = await fetch(`${API}/api/pay/status/${checkoutRequestId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await res.json();
         if (data.status === 'paid') {
-          clearInterval(tick);
-          clearInterval(pollInterval);
-          localStorage.setItem('accessExpiry', data.expiresAt);
-          window.location.href = 'videos.html';
+          stopPolling();
+          if (data.expiresAt) localStorage.setItem('accessExpiry', data.expiresAt);
+          setState('success');
+          setTimeout(() => window.location.href = 'videos.html', 2000);
         }
-      } catch {}
+      } catch { /* network blip — keep polling */ }
     }, 3000);
   }
 
-  function showTimeout() {
-    document.getElementById('checking-status').classList.remove('show');
-    document.getElementById('payment-form').style.display = 'block';
-    showMsg('error', 'Payment timed out. Please try again.');
+  function stopPolling() {
+    clearInterval(pollInterval);
+    clearInterval(countdownInterval);
+    pollInterval = null;
+    countdownInterval = null;
   }
+
+  function cancelPayment() {
+    stopPolling();
+    setState('form');
+    setLoading(false);
+    clearMsg();
+    // Reset bar
+    document.getElementById('countdown-bar').style.width = '100%';
+    document.getElementById('countdown-text').textContent = '90 seconds remaining';
+  }
+
+  // ── Enter key ──
+  document.getElementById('phone').addEventListener('keydown', e => {
+    if (e.key === 'Enter') initiatePayment();
+  });
 </script>
 </body>
 </html>
