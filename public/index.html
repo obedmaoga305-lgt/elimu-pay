@@ -4,44 +4,89 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ElimuPay — Learn & Grow</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green: #1a5c38;
-      --green-light: #e8f5ee;
-      --gold: #c8922a;
-      --gold-light: #fdf3e3;
-      --text: #1a1a1a;
+      --green: #0f4c2a;
+      --green-mid: #1a6b3c;
+      --green-light: #e6f4ec;
+      --gold: #d4a017;
+      --gold-light: #fff8e6;
+      --gold-glow: rgba(212,160,23,0.3);
+      --text: #111;
       --muted: #6b7280;
       --border: #d1d5db;
       --white: #ffffff;
       --red: #dc2626;
+      --bg: #f5f3ee;
     }
 
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: #f7f6f2;
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(15,76,42,0.07) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(212,160,23,0.07) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(15,76,42,0.04) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 12s ease-in-out infinite;
+    }
+    .orb-1 { width: 400px; height: 400px; background: rgba(15,76,42,0.12); top: -100px; left: -100px; animation-delay: 0s; }
+    .orb-2 { width: 300px; height: 300px; background: rgba(212,160,23,0.1); bottom: -80px; right: -80px; animation-delay: -4s; }
+    .orb-3 { width: 200px; height: 200px; background: rgba(15,76,42,0.08); top: 50%; left: 60%; animation-delay: -8s; }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(20px, -20px) scale(1.05); }
+      66% { transform: translate(-15px, 15px) scale(0.95); }
     }
 
     .page-wrap {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      max-width: 900px;
+      grid-template-columns: 1.1fr 0.9fr;
+      max-width: 940px;
       width: 100%;
       background: var(--white);
-      border-radius: 20px;
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.04);
+      position: relative;
+      z-index: 1;
+      animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
     }
 
-    /* LEFT PANEL */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── LEFT PANEL ── */
     .left-panel {
       background: var(--green);
       padding: 3rem 2.5rem;
@@ -51,131 +96,256 @@
       position: relative;
       overflow: hidden;
     }
+
+    /* Decorative circles */
     .left-panel::before {
       content: '';
       position: absolute;
-      width: 300px; height: 300px;
+      width: 340px; height: 340px;
       border-radius: 50%;
-      border: 60px solid rgba(255,255,255,0.06);
-      bottom: -80px; right: -80px;
+      border: 70px solid rgba(255,255,255,0.05);
+      bottom: -100px; right: -100px;
+      animation: rotateSlow 30s linear infinite;
     }
     .left-panel::after {
       content: '';
       position: absolute;
-      width: 180px; height: 180px;
+      width: 200px; height: 200px;
       border-radius: 50%;
-      border: 40px solid rgba(255,255,255,0.05);
-      top: 40px; right: 30px;
+      border: 40px solid rgba(212,160,23,0.12);
+      top: 30px; right: 20px;
+      animation: rotateSlow 20s linear infinite reverse;
     }
 
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 3rem; }
+    @keyframes rotateSlow { to { transform: rotate(360deg); } }
+
+    /* Dot grid overlay */
+    .left-panel .dot-grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 3rem;
+      animation: fadeInLeft 0.6s 0.2s both;
+    }
     .brand-icon {
-      width: 42px; height: 42px;
+      width: 46px; height: 46px;
       background: var(--gold);
-      border-radius: 10px;
+      border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
+      font-size: 22px;
+      box-shadow: 0 4px 20px var(--gold-glow);
+      transition: transform 0.3s;
     }
-    .brand-name { font-family: 'Playfair Display', serif; color: #fff; font-size: 1.4rem; }
+    .brand-icon:hover { transform: rotate(-5deg) scale(1.1); }
+    .brand-name {
+      font-family: 'Fraunces', serif;
+      color: #fff; font-size: 1.5rem; font-weight: 900;
+      letter-spacing: -0.5px;
+    }
 
+    .left-content { animation: fadeInLeft 0.6s 0.35s both; }
     .left-content h2 {
-      font-family: 'Playfair Display', serif;
+      font-family: 'Fraunces', serif;
       color: #fff;
-      font-size: 2rem;
-      line-height: 1.3;
-      margin-bottom: 1.2rem;
+      font-size: 2.1rem;
+      line-height: 1.25;
+      margin-bottom: 1rem;
+      font-weight: 700;
     }
-    .left-content p { color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.7; margin-bottom: 2rem; }
+    .left-content h2 em {
+      font-style: italic;
+      color: #f5c83a;
+    }
+    .left-content p {
+      color: rgba(255,255,255,0.65);
+      font-size: 0.92rem;
+      line-height: 1.75;
+      margin-bottom: 2rem;
+      font-weight: 300;
+    }
 
-    .features { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .features { list-style: none; display: flex; flex-direction: column; gap: 11px; }
     .features li {
-      display: flex; align-items: center; gap: 10px;
-      color: rgba(255,255,255,0.85); font-size: 0.9rem;
+      display: flex; align-items: center; gap: 12px;
+      color: rgba(255,255,255,0.82); font-size: 0.88rem;
+      animation: fadeInLeft 0.5s both;
     }
-    .features li span.dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--gold); flex-shrink: 0;
+    .features li:nth-child(1) { animation-delay: 0.5s; }
+    .features li:nth-child(2) { animation-delay: 0.6s; }
+    .features li:nth-child(3) { animation-delay: 0.7s; }
+    .features li:nth-child(4) { animation-delay: 0.8s; }
+
+    .feat-icon {
+      width: 28px; height: 28px;
+      background: rgba(212,160,23,0.18);
+      border: 1px solid rgba(212,160,23,0.3);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
     }
 
     .price-badge {
       display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(200,146,42,0.2);
-      border: 1px solid rgba(200,146,42,0.4);
-      color: #f5c878;
-      padding: 8px 16px;
+      background: rgba(212,160,23,0.18);
+      border: 1px solid rgba(212,160,23,0.35);
+      color: #f5c83a;
+      padding: 10px 18px;
       border-radius: 100px;
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.85rem; font-weight: 600;
       margin-top: 2rem;
+      animation: pulse 3s ease-in-out infinite;
     }
 
-    /* RIGHT PANEL */
-    .right-panel { padding: 3rem 2.5rem; display: flex; flex-direction: column; justify-content: center; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212,160,23,0); }
+      50% { box-shadow: 0 0 0 6px rgba(212,160,23,0.1); }
+    }
 
-    .tabs { display: flex; gap: 0; margin-bottom: 2rem; border-bottom: 2px solid var(--border); }
+    .left-footer {
+      color: rgba(255,255,255,0.3);
+      font-size: 0.78rem;
+      margin-top: 2rem;
+      animation: fadeInLeft 0.6s 1s both;
+    }
+
+    @keyframes fadeInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      padding: 3rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      animation: fadeInRight 0.6s 0.2s both;
+    }
+
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .right-panel h3 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.7rem;
+      margin-bottom: 0.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .right-panel .subtitle {
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 1.6rem;
+      font-weight: 300;
+    }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 1.8rem; background: #f3f4f6; padding: 4px; border-radius: 12px; }
     .tab-btn {
       flex: 1; background: none; border: none; cursor: pointer;
-      padding: 10px 0; font-family: 'DM Sans', sans-serif;
-      font-size: 0.95rem; font-weight: 500; color: var(--muted);
-      border-bottom: 2px solid transparent; margin-bottom: -2px;
-      transition: all 0.2s;
+      padding: 9px 0; font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem; font-weight: 500; color: var(--muted);
+      border-radius: 9px;
+      transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
     }
-    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+    .tab-btn.active {
+      background: var(--white);
+      color: var(--green);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-weight: 600;
+    }
 
-    .tab-content { display: none; }
+    .tab-content { display: none; animation: tabFade 0.3s ease; }
     .tab-content.active { display: block; }
 
-    .form-group { margin-bottom: 1.2rem; }
+    @keyframes tabFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-group { margin-bottom: 1.1rem; }
     .form-group label {
-      display: block; font-size: 0.85rem; font-weight: 500;
-      color: var(--text); margin-bottom: 6px;
+      display: block; font-size: 0.82rem; font-weight: 500;
+      color: var(--text); margin-bottom: 5px; letter-spacing: 0.02em;
     }
     .form-group input {
       width: 100%; padding: 11px 14px;
       border: 1.5px solid var(--border); border-radius: 10px;
-      font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+      font-family: 'Outfit', sans-serif; font-size: 0.93rem;
       color: var(--text); outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      background: #fafafa;
     }
     .form-group input:focus {
       border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(26,92,56,0.12);
+      box-shadow: 0 0 0 3px rgba(15,76,42,0.1);
+      background: var(--white);
     }
+    .form-group input::placeholder { color: #b0b8c5; }
 
     .btn-primary {
       width: 100%; padding: 13px;
       background: var(--green); color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: background 0.2s, transform 0.1s;
-      margin-top: 0.5rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.97rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      margin-top: 0.4rem;
+      letter-spacing: 0.01em;
     }
-    .btn-primary:hover { background: #14472c; }
-    .btn-primary:active { transform: scale(0.99); }
-    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-primary:hover {
+      background: var(--green-mid);
+      box-shadow: 0 6px 20px rgba(15,76,42,0.3);
+      transform: translateY(-1px);
+    }
+    .btn-primary:active { transform: scale(0.99) translateY(0); }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
 
     .msg {
       padding: 10px 14px; border-radius: 8px;
-      font-size: 0.875rem; margin-bottom: 1rem; display: none;
+      font-size: 0.855rem; margin-bottom: 1rem; display: none;
+      animation: msgPop 0.3s cubic-bezier(0.22,1,0.36,1);
     }
     .msg.error { background: #fee2e2; color: var(--red); border: 1px solid #fca5a5; }
     .msg.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .msg.show { display: block; }
 
-    .divider {
-      text-align: center; font-size: 0.8rem; color: var(--muted);
-      margin: 1rem 0; position: relative;
+    @keyframes msgPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
     }
-    .divider::before, .divider::after {
-      content: ''; position: absolute; top: 50%; width: 40%; height: 1px;
-      background: var(--border);
+
+    .bottom-links {
+      margin-top: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
-    .divider::before { left: 0; }
-    .divider::after { right: 0; }
+    .contact-link {
+      font-size: 0.82rem;
+      color: var(--green);
+      cursor: pointer;
+      font-weight: 500;
+      text-decoration: underline;
+      text-decoration-color: transparent;
+      transition: text-decoration-color 0.2s;
+      background: none; border: none;
+    }
+    .contact-link:hover { text-decoration-color: var(--green); }
+
+    .terms { font-size: 0.78rem; color: var(--muted); }
 
     .spinner {
-      display: inline-block; width: 16px; height: 16px;
+      display: inline-block; width: 15px; height: 15px;
       border: 2px solid rgba(255,255,255,0.4);
       border-top-color: #fff;
       border-radius: 50%;
@@ -184,8 +354,82 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── CONTACT MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open {
+      opacity: 1; pointer-events: all;
+    }
+
+    .modal {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 2.5rem;
+      max-width: 460px; width: 100%;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.2);
+      transform: translateY(30px) scale(0.96);
+      transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+      position: relative;
+    }
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-close {
+      position: absolute; top: 1.2rem; right: 1.2rem;
+      background: #f3f4f6; border: none; border-radius: 8px;
+      width: 32px; height: 32px; cursor: pointer;
+      font-size: 16px; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+      color: var(--muted);
+    }
+    .modal-close:hover { background: #e5e7eb; color: var(--text); }
+
+    .modal h4 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.4rem; margin-bottom: 0.25rem;
+    }
+    .modal .modal-sub { color: var(--muted); font-size: 0.86rem; margin-bottom: 1.6rem; }
+
+    .modal .form-group textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Outfit', sans-serif; font-size: 0.93rem;
+      color: var(--text); outline: none; resize: vertical;
+      min-height: 100px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fafafa;
+    }
+    .modal .form-group textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(15,76,42,0.1);
+      background: var(--white);
+    }
+
+    .contact-channels {
+      display: flex; gap: 10px; margin-bottom: 1.4rem;
+    }
+    .channel-pill {
+      flex: 1; padding: 10px 8px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      text-align: center; font-size: 0.8rem; color: var(--muted);
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'Outfit', sans-serif;
+    }
+    .channel-pill:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+    .channel-pill .ch-icon { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+
+    /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
-      .page-wrap { grid-template-columns: 1fr; }
+      .page-wrap { grid-template-columns: 1fr; border-radius: 16px; }
       .left-panel { display: none; }
       .right-panel { padding: 2rem 1.5rem; }
     }
@@ -193,37 +437,59 @@
 </head>
 <body>
 
+<!-- Floating orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
 <div class="page-wrap">
-  <!-- LEFT -->
+
+  <!-- ── LEFT PANEL ── -->
   <div class="left-panel">
+    <div class="dot-grid"></div>
+
     <div>
       <div class="brand">
         <div class="brand-icon">📚</div>
         <span class="brand-name">ElimuPay</span>
       </div>
+
       <div class="left-content">
-        <h2>Quality Education, One Video at a Time</h2>
-        <p>Access premium educational videos from Kenya's best tutors. Pay once, learn instantly.</p>
+        <h2>Quality Education,<br><em>One Video</em><br>at a Time</h2>
+        <p>Access premium educational videos from Kenya's best tutors. Pay once, learn instantly — anytime, anywhere.</p>
+
         <ul class="features">
-          <li><span class="dot"></span>HD quality educational videos</li>
-          <li><span class="dot"></span>Pay via M-Pesa — fast & secure</li>
-          <li><span class="dot"></span>30 minutes of unlimited access</li>
-          <li><span class="dot"></span>All topics — Math, Science, English & more</li>
+          <li>
+            <div class="feat-icon">🎬</div>
+            HD quality educational videos
+          </li>
+          <li>
+            <div class="feat-icon">📱</div>
+            Pay via M-Pesa — fast & secure
+          </li>
+          <li>
+            <div class="feat-icon">⏱️</div>
+            30 minutes of unlimited access
+          </li>
+          <li>
+            <div class="feat-icon">📖</div>
+            Math, Science, English & more
+          </li>
         </ul>
+
         <div class="price-badge">
           🎓 Only KSh 10 per session
         </div>
       </div>
     </div>
-    <p style="color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 2rem;">
-      © 2025 ElimuPay · Nairobi, Kenya
-    </p>
+
+    <p class="left-footer">© 2025 ElimuPay · Nairobi, Kenya</p>
   </div>
 
-  <!-- RIGHT -->
+  <!-- ── RIGHT PANEL ── -->
   <div class="right-panel">
-    <h3 style="font-family:'Playfair Display',serif; font-size:1.6rem; margin-bottom:0.3rem;">Welcome</h3>
-    <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">Sign in or create your account</p>
+    <h3>Welcome back 👋</h3>
+    <p class="subtitle">Sign in or create your ElimuPay account</p>
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
@@ -234,14 +500,14 @@
     <div class="tab-content active" id="login-tab">
       <div class="msg" id="login-msg"></div>
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" />
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
       </div>
       <div class="form-group">
         <label>Password</label>
         <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" />
       </div>
-      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In →</button>
     </div>
 
     <!-- REGISTER -->
@@ -249,35 +515,77 @@
       <div class="msg" id="register-msg"></div>
       <div class="form-group">
         <label>Full Name</label>
-        <input type="text" id="reg-name" placeholder="John Kamau" />
+        <input type="text" id="reg-name" placeholder="e.g. John Kamau" />
       </div>
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="reg-username" placeholder="Choose a username" autocomplete="username" />
+        <label>Email Address</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password"  />
+        <input type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password" />
       </div>
-      <button class="btn-primary" id="register-btn" onclick="doRegister()">Create Account</button>
+      <button class="btn-primary" id="register-btn" onclick="doRegister()">Create Account →</button>
     </div>
 
-    <div class="divider" style="margin-top:1.5rem;">Having trouble? Contact support</div>
-    <p style="text-align:center; font-size:0.8rem; color:var(--muted);">
-      By continuing you agree to our Terms of Service
-    </p>
+    <div class="bottom-links">
+      <button class="contact-link" onclick="openContact()">Having trouble? Contact support</button>
+      <span class="terms">By continuing you agree to our Terms of Service</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTACT MODAL ── -->
+<div class="modal-overlay" id="contactModal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeContact()">✕</button>
+    <h4>Contact Support</h4>
+    <p class="modal-sub">We usually respond within a few hours</p>
+
+    <div class="contact-channels">
+      <div class="channel-pill" onclick="window.open('https://wa.me/254700000000','_blank')">
+        <span class="ch-icon">💬</span>WhatsApp
+      </div>
+      <div class="channel-pill" onclick="window.location.href='mailto:support@elimupay.co.ke'">
+        <span class="ch-icon">✉️</span>Email
+      </div>
+      <div class="channel-pill" onclick="window.open('tel:+254700000000')">
+        <span class="ch-icon">📞</span>Call Us
+      </div>
+    </div>
+
+    <div class="msg" id="contact-msg"></div>
+
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" id="c-name" placeholder="John Kamau" />
+    </div>
+    <div class="form-group">
+      <label>Email or Phone</label>
+      <input type="text" id="c-contact" placeholder="john@email.com or 07xx..." />
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="c-msg" placeholder="Describe your issue or question..."></textarea>
+    </div>
+    <button class="btn-primary" id="contact-btn" onclick="sendContact()">Send Message →</button>
   </div>
 </div>
 
 <script>
   const API = 'https://elimu-pay.onrender.com';
 
+  // ── TABS ──
   function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
       b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
     });
-    document.getElementById('login-tab').classList.toggle('active', tab === 'login');
-    document.getElementById('register-tab').classList.toggle('active', tab === 'register');
+    ['login-tab','register-tab'].forEach(id => {
+      const el = document.getElementById(id);
+      const isActive = id.startsWith(tab);
+      if (isActive) { el.style.display = 'block'; el.classList.add('active'); }
+      else { el.style.display = 'none'; el.classList.remove('active'); }
+    });
   }
 
   function showMsg(id, type, text) {
@@ -286,72 +594,176 @@
     el.textContent = text;
   }
 
-  function setLoading(btnId, loading) {
+  function setLoading(btnId, loading, label) {
     const btn = document.getElementById(btnId);
     btn.disabled = loading;
-    btn.innerHTML = loading
-      ? '<span class="spinner"></span>Please wait...'
-      : (btnId === 'login-btn' ? 'Sign In' : 'Create Account');
+    btn.innerHTML = loading ? '<span class="spinner"></span>Please wait...' : label;
   }
 
+  // ── LOGIN ──
   async function doLogin() {
-    const username = document.getElementById('login-username').value.trim();
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
-    if (!username || !password) return showMsg('login-msg', 'error', 'Please fill in all fields.');
-
-    setLoading('login-btn', true);
+    if (!email || !password) return showMsg('login-msg', 'error', 'Please fill in all fields.');
+    setLoading('login-btn', true, 'Sign In →');
     try {
       const res = await fetch(`${API}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-
       localStorage.setItem('token', data.token);
-      localStorage.setItem('username', username);
-
-      if (data.hasAccess) {
-        window.location.href = 'videos.html';
-      } else {
-        window.location.href = 'pay.html';
-      }
+      localStorage.setItem('email', email);
+      // 🎉 Trigger falling books, then redirect
+      launchFallingBooks(() => {
+        window.location.href = data.hasAccess ? 'videos.html' : 'pay.html';
+      });
     } catch (e) {
       showMsg('login-msg', 'error', e.message);
-    } finally {
-      setLoading('login-btn', false);
+      setLoading('login-btn', false, 'Sign In →');
     }
   }
 
+  // ── REGISTER ──
   async function doRegister() {
     const name = document.getElementById('reg-name').value.trim();
-    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
-    if (!name || !username || !password) return showMsg('register-msg', 'error', 'Please fill in all fields.');
+    if (!name || !email || !password) return showMsg('register-msg', 'error', 'Please fill in all fields.');
     if (password.length < 6) return showMsg('register-msg', 'error', 'Password must be at least 6 characters.');
-
-    setLoading('register-btn', true);
+    setLoading('register-btn', true, 'Create Account →');
     try {
       const res = await fetch(`${API}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, password })
+        body: JSON.stringify({ name, email, password })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
-      showMsg('register-msg', 'success', 'Account created! Please sign in.');
+      showMsg('register-msg', 'success', '🎉 Account created! Please sign in.');
       setTimeout(() => switchTab('login'), 1500);
     } catch (e) {
       showMsg('register-msg', 'error', e.message);
     } finally {
-      setLoading('register-btn', false);
+      setLoading('register-btn', false, 'Create Account →');
     }
   }
 
-  // Allow Enter key
+  // ── FALLING BOOKS ANIMATION ──
+  function launchFallingBooks(onDone) {
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;
+      background:rgba(15,76,42,0);
+      transition:background 0.4s;
+    `;
+    document.body.appendChild(overlay);
+
+    // Success message
+    const banner = document.createElement('div');
+    banner.textContent = '✅ Signed in! Loading your dashboard…';
+    banner.style.cssText = `
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);
+      background:#fff;border-radius:16px;padding:18px 32px;
+      font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:600;color:#0f4c2a;
+      box-shadow:0 20px 60px rgba(0,0,0,0.2);z-index:10000;
+      opacity:0;transition:all 0.4s cubic-bezier(0.22,1,0.36,1);
+    `;
+    document.body.appendChild(banner);
+
+    requestAnimationFrame(() => {
+      overlay.style.background = 'rgba(15,76,42,0.15)';
+      banner.style.opacity = '1';
+      banner.style.transform = 'translate(-50%,-50%) scale(1)';
+    });
+
+    const BOOK_EMOJIS = ['📚','📖','📗','📘','📙','📕','🎓','✏️','📝','🔬','🧮','📐'];
+    const total = 40;
+    const books = [];
+
+    for (let i = 0; i < total; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        const emoji = BOOK_EMOJIS[Math.floor(Math.random() * BOOK_EMOJIS.length)];
+        const size = 28 + Math.random() * 28;
+        const startX = Math.random() * window.innerWidth;
+        const delay = Math.random() * 0.4;
+        const duration = 1.4 + Math.random() * 1.2;
+        const spin = (Math.random() > 0.5 ? 1 : -1) * (200 + Math.random() * 300);
+        const sway = (Math.random() - 0.5) * 200;
+
+        el.textContent = emoji;
+        el.style.cssText = `
+          position:fixed;
+          left:${startX}px;
+          top:-${size + 20}px;
+          font-size:${size}px;
+          z-index:10000;
+          pointer-events:none;
+          animation: bookFall${i} ${duration}s ${delay}s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        `;
+
+        // Inject unique keyframe
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes bookFall${i} {
+            0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity:1; }
+            80%  { opacity:1; }
+            100% { transform: translateY(${window.innerHeight + size + 60}px) translateX(${sway}px) rotate(${spin}deg); opacity:0; }
+          }
+        `;
+        document.head.appendChild(style);
+        overlay.appendChild(el);
+        books.push({ el, style });
+      }, i * 60);
+    }
+
+    // Redirect after animation
+    setTimeout(() => {
+      books.forEach(b => { b.el.remove(); b.style.remove(); });
+      overlay.remove();
+      banner.remove();
+      if (onDone) onDone();
+    }, total * 60 + 2200);
+  }
+
+  // ── CONTACT MODAL ──
+  function openContact() {
+    document.getElementById('contactModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeContact() {
+    document.getElementById('contactModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('contactModal')) closeContact();
+  }
+
+  async function sendContact() {
+    const name = document.getElementById('c-name').value.trim();
+    const contact = document.getElementById('c-contact').value.trim();
+    const msg = document.getElementById('c-msg').value.trim();
+    if (!name || !contact || !msg) return showMsg('contact-msg', 'error', 'Please fill in all fields.');
+    setLoading('contact-btn', true, 'Send Message →');
+    // Simulate send (replace with your actual endpoint)
+    await new Promise(r => setTimeout(r, 1200));
+    showMsg('contact-msg', 'success', '✅ Message sent! We\'ll get back to you soon.');
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-contact').value = '';
+    document.getElementById('c-msg').value = '';
+    setLoading('contact-btn', false, 'Send Message →');
+    setTimeout(closeContact, 2000);
+  }
+
+  // ── ENTER KEY ──
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Escape') closeContact();
+    if (e.key === 'Enter' && !document.getElementById('contactModal').classList.contains('open')) {
       if (document.getElementById('login-tab').classList.contains('active')) doLogin();
       else doRegister();
     }
