@@ -11,9 +11,11 @@ const bcrypt       = require('bcryptjs');
 const jwt          = require('jsonwebtoken');
 const axios        = require('axios');
 const path         = require('path');
+const crypto       = require('crypto');
 const helmet       = require('helmet');
 const morgan       = require('morgan');
 const rateLimit    = require('express-rate-limit');
+const nodemailer   = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
 
 // ─────────────────────────────────────────
@@ -21,12 +23,25 @@ const { createClient } = require('@supabase/supabase-js');
 // ─────────────────────────────────────────
 const app = express();
 
+app.set('trust proxy', 1); // Trust Render/Railway reverse proxy
+
+// Force HTTPS in production
+app.use((req, res, next) => {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    req.headers['x-forwarded-proto'] !== 'https'
+  ) {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(cors({ origin: '*' }));
 app.use(morgan('dev'));
 app.use(
   helmet({
-    contentSecurityPolicy: false, // allow inline scripts in public HTML
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
   })
 );
@@ -35,22 +50,29 @@ app.use(
 //  Rate Limiters
 // ─────────────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Too many requests. Please wait 15 minutes and try again.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: { error: 'Too many reset attempts. Please try again in an hour.' },
+});
+
 const generalLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 60,
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-app.use('/api/login',    authLimiter);
-app.use('/api/register', authLimiter);
-app.use('/api/',         generalLimiter);
+app.use('/api/login',           authLimiter);
+app.use('/api/register',        authLimiter);
+app.use('/api/forgot-password', forgotLimiter);
+app.use('/api/',                generalLimiter);
 
 // ─────────────────────────────────────────
 //  Supabase Client
@@ -61,9 +83,50 @@ const supabase = createClient(
 );
 
 // ─────────────────────────────────────────
+//  Email (Nodemailer)
+// ─────────────────────────────────────────
+const mailer = nodemailer.createTransport({
+  host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
+  port:   parseInt(process.env.EMAIL_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+async function sendEmail({ to, subject, html }) {
+  if (!process.env.EMAIL_USER) {
+    console.log(`📧 [Email skipped — no EMAIL_USER set] To: ${to} | Subject: ${subject}`);
+    return;
+  }
+  await mailer.sendMail({ from: `"ElimuPay" <${process.env.EMAIL_USER}>`, to, subject, html });
+}
+
+function emailTemplate({ title, body, btnText, btnUrl }) {
+  return `
+  <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#f9fafb;padding:24px;border-radius:12px;">
+    <div style="background:#16a34a;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:1.4rem;">📚 ElimuPay</h1>
+    </div>
+    <div style="background:#fff;padding:28px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;">
+      <h2 style="color:#052e16;margin-bottom:12px;">${title}</h2>
+      ${body}
+      ${btnText && btnUrl ? `
+        <a href="${btnUrl}" style="display:inline-block;margin-top:20px;padding:12px 28px;
+          background:#16a34a;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">
+          ${btnText}
+        </a>` : ''}
+    </div>
+    <p style="text-align:center;color:#6b7280;font-size:0.8rem;margin-top:16px;">
+      © ${new Date().getFullYear()} ElimuPay Kenya. Educational Video Platform.
+    </p>
+  </div>`;
+}
+
+// ─────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────
-
 function getIP(req) {
   return (
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -88,7 +151,6 @@ function sanitize(str) {
 // ─────────────────────────────────────────
 //  Middleware — Auth Guards
 // ─────────────────────────────────────────
-
 function verifyToken(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) {
@@ -122,7 +184,6 @@ function verifyAdmin(req, res, next) {
 // ─────────────────────────────────────────
 //  Access Check
 // ─────────────────────────────────────────
-
 async function checkUserAccess(userId) {
   const { data } = await supabase
     .from('sessions')
@@ -141,7 +202,6 @@ async function checkUserAccess(userId) {
 // ─────────────────────────────────────────
 //  M-Pesa Helpers
 // ─────────────────────────────────────────
-
 async function getMpesaToken() {
   const key    = process.env.MPESA_CONSUMER_KEY?.trim();
   const secret = process.env.MPESA_CONSUMER_SECRET?.trim();
@@ -211,7 +271,6 @@ app.post('/api/register', async (req, res) => {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Register DB check error:', checkError);
       return res.status(500).json({ error: 'Database error. Please try again.' });
     }
     if (existing) {
@@ -220,15 +279,24 @@ app.post('/api/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const { error: insertError } = await supabase.from('users').insert({
-      name,
-      email,
-      password: hashedPassword,
+      name, email, password: hashedPassword,
     });
 
     if (insertError) {
-      console.error('Register insert error:', insertError);
       return res.status(500).json({ error: 'Registration failed. Please try again.' });
     }
+
+    // Welcome email
+    sendEmail({
+      to: email,
+      subject: '🎓 Welcome to ElimuPay!',
+      html: emailTemplate({
+        title: `Welcome, ${name}! 🎉`,
+        body: `<p style="color:#374151;line-height:1.6">Your ElimuPay account has been created successfully. Pay just <strong>KES 10</strong> via M-Pesa to start watching educational videos.</p>`,
+        btnText: 'Start Learning →',
+        btnUrl: process.env.BACKEND_URL,
+      }),
+    }).catch(console.error);
 
     res.status(201).json({ message: 'Account created successfully! Please log in.' });
   } catch (err) {
@@ -240,9 +308,9 @@ app.post('/api/register', async (req, res) => {
 // POST /api/login
 app.post('/api/login', async (req, res) => {
   try {
-    const email    = sanitize(req.body.email)?.toLowerCase();
-    const password = sanitize(req.body.password);
-    const ip       = getIP(req);
+    const email     = sanitize(req.body.email)?.toLowerCase();
+    const password  = sanitize(req.body.password);
+    const ip        = getIP(req);
     const userAgent = req.headers['user-agent'] || '';
 
     if (!email || !password) {
@@ -258,16 +326,17 @@ app.post('/api/login', async (req, res) => {
       .eq('email', email)
       .single();
 
-    const success = user && (await bcrypt.compare(password, user.password));
+    const success = user && !user.is_banned && (await bcrypt.compare(password, user.password));
 
     await supabase.from('login_attempts').insert({
-      email,
-      ip,
-      user_agent: userAgent,
+      email, ip, user_agent: userAgent,
       status: success ? 'success' : 'failed',
     });
 
     if (!success) {
+      if (user?.is_banned) {
+        return res.status(403).json({ error: 'This account has been suspended. Contact support.' });
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -292,8 +361,85 @@ app.get('/api/check-access', verifyToken, async (req, res) => {
     const access = await checkUserAccess(req.user.userId);
     res.json(access);
   } catch (err) {
-    console.error('Check access error:', err);
     res.status(500).json({ error: 'Access check failed' });
+  }
+});
+
+// POST /api/forgot-password
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const email = sanitize(req.body.email)?.toLowerCase();
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, name')
+      .eq('email', email)
+      .single();
+
+    // Always respond success (don't reveal if email exists)
+    res.json({ message: 'If that email is registered, a reset link has been sent.' });
+
+    if (!user) return;
+
+    const token     = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+    await supabase.from('password_resets').insert({
+      user_id: user.id, email, token, expires_at: expiresAt,
+    });
+
+    const resetUrl = `${process.env.BACKEND_URL}/reset-password.html?token=${token}`;
+
+    sendEmail({
+      to: email,
+      subject: '🔑 Reset Your ElimuPay Password',
+      html: emailTemplate({
+        title: 'Password Reset Request',
+        body: `<p style="color:#374151;line-height:1.6">Hi <strong>${user.name}</strong>,<br><br>We received a request to reset your password. This link expires in <strong>1 hour</strong>.</p>`,
+        btnText: 'Reset My Password →',
+        btnUrl: resetUrl,
+      }),
+    }).catch(console.error);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/reset-password
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const { data: reset } = await supabase
+      .from('password_resets')
+      .select('*')
+      .eq('token', token)
+      .gt('expires_at', new Date().toISOString())
+      .eq('used', false)
+      .single();
+
+    if (!reset) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    const hashed = await bcrypt.hash(password, 12);
+    await supabase.from('users').update({ password: hashed }).eq('id', reset.user_id);
+    await supabase.from('password_resets').update({ used: true }).eq('token', token);
+
+    res.json({ message: 'Password reset successfully! You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Password reset failed' });
   }
 });
 
@@ -304,19 +450,13 @@ app.get('/api/check-access', verifyToken, async (req, res) => {
 // POST /api/pay/initiate
 app.post('/api/pay/initiate', verifyToken, async (req, res) => {
   try {
-    const phone = sanitize(req.body.phone);
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-
-    // Validate Kenyan phone format
-    const phoneClean = phone.replace(/\s+/g, '');
-    if (!/^2547\d{8}$/.test(phoneClean)) {
+    const phone = sanitize(req.body.phone)?.replace(/\s+/g, '');
+    if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+    if (!/^2547\d{8}$/.test(phone)) {
       return res.status(400).json({ error: 'Enter a valid Safaricom number e.g. 2547XXXXXXXX' });
     }
 
-    const result = await stkPush({ phone: phoneClean, amount: 10 });
-
+    const result = await stkPush({ phone, amount: 10 });
     if (result.ResponseCode !== '0') {
       return res.status(400).json({
         error: result.ResponseDescription || 'M-Pesa request failed',
@@ -326,23 +466,20 @@ app.post('/api/pay/initiate', verifyToken, async (req, res) => {
     await supabase.from('payments').insert({
       user_id:             req.user.userId,
       email:               req.user.email,
-      phone:               phoneClean,
+      phone,
       amount:              10,
       checkout_request_id: result.CheckoutRequestID,
       status:              'pending',
     });
 
-    res.json({
-      message:           'STK push sent — check your phone',
-      checkoutRequestId: result.CheckoutRequestID,
-    });
+    res.json({ message: 'STK push sent — check your phone', checkoutRequestId: result.CheckoutRequestID });
   } catch (err) {
     console.error('STK push error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Payment initiation failed. Please try again.' });
   }
 });
 
-// POST /api/pay/callback  (M-Pesa webhook — always return 200)
+// POST /api/pay/callback  (M-Pesa webhook)
 app.post('/api/pay/callback', async (req, res) => {
   try {
     const body = req.body?.Body?.stkCallback;
@@ -363,51 +500,60 @@ app.post('/api/pay/callback', async (req, res) => {
 
       const { data: payment } = await supabase
         .from('payments')
-        .select('user_id')
+        .select('user_id, email, phone')
         .eq('checkout_request_id', checkoutRequestId)
         .single();
 
       if (payment) {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-        await supabase.from('sessions').insert({
-          user_id:    payment.user_id,
-          expires_at: expiresAt,
-        });
+        await supabase.from('sessions').insert({ user_id: payment.user_id, expires_at: expiresAt });
         console.log(`✅ Access granted to user ${payment.user_id} until ${expiresAt}`);
+
+        // Send payment receipt email
+        if (payment.email) {
+          sendEmail({
+            to: payment.email,
+            subject: '✅ ElimuPay Payment Confirmed!',
+            html: emailTemplate({
+              title: 'Payment Successful!',
+              body: `
+                <p style="color:#374151;line-height:1.6">Your payment of <strong>KES ${amount}</strong> has been confirmed.</p>
+                <p style="color:#374151;line-height:1.6"><strong>M-Pesa Ref:</strong> ${mpesaRef}</p>
+                <p style="color:#374151;line-height:1.6">You now have <strong>30 minutes</strong> of full video access. Start learning now!</p>
+              `,
+              btnText: 'Watch Videos →',
+              btnUrl: `${process.env.BACKEND_URL}/videos.html`,
+            }),
+          }).catch(console.error);
+        }
       }
     } else {
       await supabase
         .from('payments')
         .update({ status: 'failed' })
         .eq('checkout_request_id', checkoutRequestId);
-      console.log(`❌ Payment failed/cancelled — CheckoutRequestID: ${checkoutRequestId}`);
+      console.log(`❌ Payment failed — ${checkoutRequestId}`);
     }
 
     res.sendStatus(200);
   } catch (err) {
     console.error('Callback error:', err);
-    res.sendStatus(200); // Always 200 to M-Pesa
+    res.sendStatus(200);
   }
 });
 
 // GET /api/pay/status/:checkoutRequestId
 app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   try {
-    const { checkoutRequestId } = req.params;
-
     const { data } = await supabase
       .from('payments')
       .select('status, mpesa_ref, amount, created_at')
-      .eq('checkout_request_id', checkoutRequestId)
+      .eq('checkout_request_id', req.params.checkoutRequestId)
       .single();
 
-    if (!data) {
-      return res.status(404).json({ error: 'Payment record not found' });
-    }
-
+    if (!data) return res.status(404).json({ error: 'Payment record not found' });
     res.json(data);
   } catch (err) {
-    console.error('Status error:', err);
     res.status(500).json({ error: 'Status check failed' });
   }
 });
@@ -439,20 +585,30 @@ app.get('/api/videos', verifyToken, async (req, res) => {
 
     res.json({ videos: data, expiresAt: access.expiresAt });
   } catch (err) {
-    console.error('Videos fetch error:', err);
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
 
-// POST /api/videos/:id/view  (increment view counter)
+// POST /api/videos/:id/view
 app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
   try {
     const access = await checkUserAccess(req.user.userId);
-    if (!access.hasAccess) {
-      return res.status(403).json({ error: 'Payment required', code: 'NO_ACCESS' });
+    if (!access.hasAccess) return res.status(403).json({ error: 'No access', code: 'NO_ACCESS' });
+
+    // Increment views
+    const { data: video } = await supabase
+      .from('videos')
+      .select('views')
+      .eq('id', req.params.id)
+      .single();
+
+    if (video) {
+      await supabase
+        .from('videos')
+        .update({ views: (video.views || 0) + 1 })
+        .eq('id', req.params.id);
     }
 
-    await supabase.rpc('increment_views', { video_id: req.params.id });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to record view' });
@@ -484,7 +640,6 @@ app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error('Stats error:', err);
     res.status(500).json({ error: 'Failed to load stats' });
   }
 });
@@ -494,13 +649,35 @@ app.get('/api/admin/users', verifyAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, created_at')
+      .select('id, name, email, is_banned, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     if (error) throw error;
     res.json({ users: data });
   } catch (err) {
     res.status(500).json({ error: 'Failed to load users' });
+  }
+});
+
+// POST /api/admin/users/:id/ban  (ban or unban)
+app.post('/api/admin/users/:id/ban', verifyAdmin, async (req, res) => {
+  try {
+    const { ban } = req.body;
+    const { error } = await supabase
+      .from('users')
+      .update({ is_banned: !!ban })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+
+    // If banning, delete all active sessions
+    if (ban) {
+      await supabase.from('sessions').delete().eq('user_id', req.params.id);
+    }
+
+    res.json({ message: ban ? 'User banned successfully' : 'User unbanned successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update user status' });
   }
 });
 
@@ -511,7 +688,7 @@ app.get('/api/admin/payments', verifyAdmin, async (req, res) => {
       .from('payments')
       .select('id, email, phone, amount, status, mpesa_ref, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     if (error) throw error;
     res.json({ payments: data });
   } catch (err) {
@@ -534,18 +711,32 @@ app.get('/api/admin/attempts', verifyAdmin, async (req, res) => {
   }
 });
 
-// POST /api/admin/videos  (add a video)
+// GET /api/admin/all-videos (includes inactive)
+app.get('/api/admin/all-videos', verifyAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ videos: data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load videos' });
+  }
+});
+
+// POST /api/admin/videos
 app.post('/api/admin/videos', verifyAdmin, async (req, res) => {
   try {
     const { title, description, url, thumbnail, subject, grade, duration } = req.body;
-    if (!title || !url) {
-      return res.status(400).json({ error: 'Title and URL are required' });
-    }
+    if (!title || !url) return res.status(400).json({ error: 'Title and URL are required' });
+
     const { data, error } = await supabase
       .from('videos')
       .insert({ title, description, url, thumbnail, subject, grade, duration })
       .select()
       .single();
+
     if (error) throw error;
     res.status(201).json({ message: 'Video added successfully', video: data });
   } catch (err) {
@@ -572,7 +763,12 @@ app.delete('/api/admin/videos/:id', verifyAdmin, async (req, res) => {
 //  Health Check
 // ─────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'ElimuPay API' });
+  res.json({
+    status:    'ok',
+    timestamp: new Date().toISOString(),
+    service:   'ElimuPay API',
+    env:       process.env.MPESA_ENV || 'sandbox',
+  });
 });
 
 // ─────────────────────────────────────────
@@ -589,9 +785,10 @@ app.get('*', (req, res) => {
 // ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\n  ╔════════════════════════════════════════╗`);
-  console.log(`  ║   ElimuPay server is running 🚀        ║`);
-  console.log(`  ║   http://localhost:${PORT}                ║`);
-  console.log(`  ║   ENV: ${process.env.MPESA_ENV || 'sandbox'}                     ║`);
-  console.log(`  ╚════════════════════════════════════════╝\n`);
+  console.log(`\n  ╔═══════════════════════════════════════════╗`);
+  console.log(`  ║   ElimuPay server is running 🚀           ║`);
+  console.log(`  ║   http://localhost:${PORT}                   ║`);
+  console.log(`  ║   M-Pesa: ${(process.env.MPESA_ENV || 'sandbox').padEnd(32)}║`);
+  console.log(`  ║   Email:  ${(process.env.EMAIL_USER || 'not configured').padEnd(32)}║`);
+  console.log(`  ╚═══════════════════════════════════════════╝\n`);
 });
