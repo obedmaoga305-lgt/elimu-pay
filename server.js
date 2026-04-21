@@ -1,58 +1,99 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const axios = require('axios');
-const { createClient } = require('@supabase/supabase-js');
-const path = require('path');
+// ╔══════════════════════════════════════════════════════╗
+// ║              ElimuPay — Backend Server               ║
+// ║         Educational Video Platform · Kenya           ║
+// ╚══════════════════════════════════════════════════════╝
 
+require('dotenv').config();
+
+const express    = require('express');
+const cors       = require('cors');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const axios      = require('axios');
+const path       = require('path');
+const { createClient } = require('@supabase/supabase-js');
+
+// ─────────────────────────────────────────
+//  App & Middleware
+// ─────────────────────────────────────────
 const app = express();
+
 app.use(express.json());
 app.use(cors({ origin: '*' }));
 
+// ─────────────────────────────────────────
+//  Supabase Client
+// ─────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// ─────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────
+
+/** Extract the requester's IP address */
 function getIP(req) {
   return (
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-    req.headers['x-real-ip'] ||
-    req.socket?.remoteAddress ||
+    req.headers['x-real-ip']                              ||
+    req.socket?.remoteAddress                             ||
     'unknown'
   );
 }
 
+/** Sign a JWT valid for 7 days */
 function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 }
 
+/** Validate email format */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// ─────────────────────────────────────────
+//  Middleware — Auth Guards
+// ─────────────────────────────────────────
+
+/** Require a valid user JWT */
 function verifyToken(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  if (!auth?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
     req.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
     next();
   } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
+/** Require a valid admin JWT */
 function verifyAdmin(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  if (!auth?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
     const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden — admin only' });
+    }
     req.admin = decoded;
     next();
   } catch {
-    return res.status(401).json({ error: 'Invalid admin token' });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
+// ─────────────────────────────────────────
+//  Access Check
+// ─────────────────────────────────────────
+
+/** Returns whether a user has an active paid session */
 async function checkUserAccess(userId) {
   const { data } = await supabase
     .from('sessions')
@@ -62,178 +103,286 @@ async function checkUserAccess(userId) {
     .order('expires_at', { ascending: false })
     .limit(1)
     .single();
-  return data ? { hasAccess: true, expiresAt: data.expires_at } : { hasAccess: false };
+
+  return data
+    ? { hasAccess: true,  expiresAt: data.expires_at }
+    : { hasAccess: false, expiresAt: null };
 }
 
+// ─────────────────────────────────────────
+//  M-Pesa Helpers
+// ─────────────────────────────────────────
+
+/** Fetch a fresh M-Pesa OAuth token */
 async function getMpesaToken() {
-  const key = process.env.MPESA_CONSUMER_KEY?.trim();
+  const key    = process.env.MPESA_CONSUMER_KEY?.trim();
   const secret = process.env.MPESA_CONSUMER_SECRET?.trim();
-  const auth = Buffer.from(`${key}:${secret}`).toString('base64');
-  try {
-    const { data } = await axios.get(
-      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-      { headers: { Authorization: `Basic ${auth}` } }
-    );
-    return data.access_token;
-  } catch (e) {
-    console.error('Token error:', e.response?.data || e.message);
-    throw e;
-  }
+  const auth   = Buffer.from(`${key}:${secret}`).toString('base64');
+
+  const { data } = await axios.get(
+    'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+    { headers: { Authorization: `Basic ${auth}` } }
+  );
+  return data.access_token;
 }
 
+/** Trigger an M-Pesa STK push */
 async function stkPush({ phone, amount }) {
-  const token = await getMpesaToken();
+  const token     = await getMpesaToken();
   const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
   const shortcode = process.env.MPESA_SHORTCODE;
-  const passkey = process.env.MPESA_PASSKEY;
-  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+  const passkey   = process.env.MPESA_PASSKEY;
+  const password  = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+
   const { data } = await axios.post(
     'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
     {
       BusinessShortCode: shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: amount,
-      PartyA: phone,
-      PartyB: shortcode,
-      PhoneNumber: phone,
-      CallBackURL: `${process.env.BACKEND_URL}/api/pay/callback`,
-      AccountReference: 'ElimuPay',
-      TransactionDesc: '30min Video Access'
+      Password:          password,
+      Timestamp:         timestamp,
+      TransactionType:   'CustomerPayBillOnline',
+      Amount:            amount,
+      PartyA:            phone,
+      PartyB:            shortcode,
+      PhoneNumber:       phone,
+      CallBackURL:       `${process.env.BACKEND_URL}/api/pay/callback`,
+      AccountReference:  'ElimuPay',
+      TransactionDesc:   '30min Video Access',
     },
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return data;
 }
 
+// ═══════════════════════════════════════════════════════
+//  ROUTES
+// ═══════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────
+//  POST /api/register
+// ─────────────────────────────────────────
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, username, password } = req.body;
-    if (!name || !username || !password) return res.status(400).json({ error: 'All fields required' });
-    if (password.length < 6) return res.status(400).json({ error: 'Password too short' });
-    const { data: existing, error: checkError } = await supabase
-      .from('users').select('id').eq('username', username.toLowerCase()).single();
-    if (checkError && checkError.code !== 'PGRST116') {
-      return res.status(500).json({ error: 'Database error' });
+    const { name, email, password } = req.body;
+
+    // ── Validation ──
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
-    if (existing) return res.status(409).json({ error: 'Username already taken' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // ── Check for existing account ──
+    const { data: existing, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Register DB check error:', checkError);
+      return res.status(500).json({ error: 'Database error. Please try again.' });
+    }
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
+
+    // ── Create account ──
     const hashedPassword = await bcrypt.hash(password, 10);
-    const { error } = await supabase.from('users').insert({
+    const { error: insertError } = await supabase.from('users').insert({
       name,
-      username: username.toLowerCase(),
-      password: hashedPassword
+      email:    email.toLowerCase(),
+      password: hashedPassword,
     });
-    if (error) return res.status(500).json({ error: 'Registration failed' });
-    res.json({ message: 'Account created successfully' });
+
+    if (insertError) {
+      console.error('Register insert error:', insertError);
+      return res.status(500).json({ error: 'Registration failed. Please try again.' });
+    }
+
+    res.status(201).json({ message: 'Account created successfully' });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+// ─────────────────────────────────────────
+//  POST /api/login
+// ─────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const ip = getIP(req);
+    const { email, password } = req.body;
+    const ip        = getIP(req);
     const userAgent = req.headers['user-agent'] || '';
-    if (!username || !password) return res.status(400).json({ error: 'All fields required' });
+
+    // ── Validation ──
+    if (!email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    // ── Lookup user ──
     const { data: user } = await supabase
-      .from('users').select('*').eq('username', username.toLowerCase()).single();
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+
     const success = user && (await bcrypt.compare(password, user.password));
+
+    // ── Log attempt ──
     await supabase.from('login_attempts').insert({
-      username: username.toLowerCase(),
+      email:      email.toLowerCase(),
       ip,
       user_agent: userAgent,
-      status: success ? 'success' : 'failed'
+      status:     success ? 'success' : 'failed',
     });
-    if (!success) return res.status(401).json({ error: 'Invalid username or password' });
-    const token = signToken({ userId: user.id, username: user.username });
+
+    if (!success) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // ── Issue token & check access ──
+    const token  = signToken({ userId: user.id, email: user.email });
     const access = await checkUserAccess(user.id);
-    res.json({ token, hasAccess: access.hasAccess, expiresAt: access.expiresAt });
+
+    res.json({
+      token,
+      hasAccess:  access.hasAccess,
+      expiresAt:  access.expiresAt,
+      name:       user.name,
+    });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Login failed. Please try again.' });
   }
 });
 
+// ─────────────────────────────────────────
+//  GET /api/check-access
+// ─────────────────────────────────────────
 app.get('/api/check-access', verifyToken, async (req, res) => {
   try {
     const access = await checkUserAccess(req.user.userId);
     res.json(access);
   } catch (err) {
-    res.status(500).json({ error: 'Check access failed' });
+    console.error('Check access error:', err);
+    res.status(500).json({ error: 'Access check failed' });
   }
 });
 
+// ─────────────────────────────────────────
+//  POST /api/pay/initiate
+// ─────────────────────────────────────────
 app.post('/api/pay/initiate', verifyToken, async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: 'Phone number required' });
-    const result = await stkPush({ phone, amount: 10 });
-    if (result.ResponseCode !== '0') {
-      return res.status(400).json({ error: result.ResponseDescription || 'M-Pesa request failed' });
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number is required' });
     }
+
+    const result = await stkPush({ phone, amount: 10 });
+
+    if (result.ResponseCode !== '0') {
+      return res.status(400).json({
+        error: result.ResponseDescription || 'M-Pesa request failed',
+      });
+    }
+
     await supabase.from('payments').insert({
-      user_id: req.user.userId,
-      username: req.user.username,
+      user_id:             req.user.userId,
+      email:               req.user.email,
       phone,
-      amount: 10,
+      amount:              10,
       checkout_request_id: result.CheckoutRequestID,
-      status: 'pending'
+      status:              'pending',
     });
-    res.json({ message: 'STK push sent', checkoutRequestId: result.CheckoutRequestID });
-  } catch (e) {
-    console.error('STK push error:', e.message);
-    console.error('STK push details:', e.response?.data);
-    res.status(500).json({ error: 'Payment initiation failed' });
+
+    res.json({
+      message:           'STK push sent — check your phone',
+      checkoutRequestId: result.CheckoutRequestID,
+    });
+  } catch (err) {
+    console.error('STK push error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Payment initiation failed. Please try again.' });
   }
 });
 
+// ─────────────────────────────────────────
+//  POST /api/pay/callback  (M-Pesa webhook)
+// ─────────────────────────────────────────
 app.post('/api/pay/callback', async (req, res) => {
   try {
     const body = req.body?.Body?.stkCallback;
     if (!body) return res.sendStatus(200);
-    const checkoutRequestId = body.CheckoutRequestID;
-    const resultCode = body.ResultCode;
+
+    const { CheckoutRequestID: checkoutRequestId, ResultCode: resultCode } = body;
+
     if (resultCode === 0) {
-      const items = body.CallbackMetadata?.Item || [];
-      const getItem = name => items.find(i => i.Name === name)?.Value;
+      // ── Successful payment ──
+      const items    = body.CallbackMetadata?.Item || [];
+      const getItem  = name => items.find(i => i.Name === name)?.Value;
       const mpesaRef = getItem('MpesaReceiptNumber');
-      const amount = getItem('Amount');
-      await supabase.from('payments')
+      const amount   = getItem('Amount');
+
+      await supabase
+        .from('payments')
         .update({ status: 'paid', mpesa_ref: mpesaRef, amount })
         .eq('checkout_request_id', checkoutRequestId);
+
+      // ── Grant 30-minute session ──
       const { data: payment } = await supabase
-        .from('payments').select('user_id').eq('checkout_request_id', checkoutRequestId).single();
+        .from('payments')
+        .select('user_id')
+        .eq('checkout_request_id', checkoutRequestId)
+        .single();
+
       if (payment) {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         await supabase.from('sessions').insert({
-          user_id: payment.user_id,
-          expires_at: expiresAt
+          user_id:    payment.user_id,
+          expires_at: expiresAt,
         });
       }
     } else {
-      await supabase.from('payments')
+      // ── Failed / cancelled payment ──
+      await supabase
+        .from('payments')
         .update({ status: 'failed' })
         .eq('checkout_request_id', checkoutRequestId);
     }
+
     res.sendStatus(200);
   } catch (err) {
     console.error('Callback error:', err);
-    res.sendStatus(200);
+    res.sendStatus(200); // Always 200 to M-Pesa
   }
 });
 
+// ─────────────────────────────────────────
+//  GET /api/pay/status/:checkoutRequestId
+// ─────────────────────────────────────────
 app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   try {
     const { checkoutRequestId } = req.params;
+
     const { data } = await supabase
       .from('payments')
       .select('status, mpesa_ref, amount')
       .eq('checkout_request_id', checkoutRequestId)
       .single();
-    if (!data) return res.status(404).json({ error: 'Payment not found' });
+
+    if (!data) {
+      return res.status(404).json({ error: 'Payment record not found' });
+    }
+
     res.json(data);
   } catch (err) {
     console.error('Status error:', err);
@@ -241,13 +390,22 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────
+//  Static Files & SPA Fallback
+// ─────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ─────────────────────────────────────────
+//  Start Server
+// ─────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`ElimuPay server running on port ${PORT}`);
+  console.log(`\n  ╔════════════════════════════════╗`);
+  console.log(`  ║  ElimuPay server is running    ║`);
+  console.log(`  ║  http://localhost:${PORT}          ║`);
+  console.log(`  ╚════════════════════════════════╝\n`);
 });
