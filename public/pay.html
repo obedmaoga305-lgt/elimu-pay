@@ -1,633 +1,519 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ElimuPay — Pay to Learn</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ElimuPay — Pay & Access Videos</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --green:#16a34a;--green-light:#22c55e;
+  --red:#dc2626;--gold:#d97706;
+  --bg:#080c0a;--bg2:#0f1710;--card:#111c14;
+  --border:rgba(22,163,74,0.18);--text:#f0fdf4;
+  --muted:#6b7280;--input-bg:rgba(255,255,255,0.04);
+  --shadow:0 25px 60px rgba(0,0,0,0.6);
+}
+[data-theme="light"]{
+  --bg:#f0fdf4;--bg2:#dcfce7;--card:#ffffff;
+  --border:rgba(22,163,74,0.25);--text:#052e16;
+  --muted:#4b5563;--input-bg:rgba(0,0,0,0.04);
+  --shadow:0 25px 60px rgba(0,0,0,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;
+  overflow-x:hidden;transition:background 0.3s,color 0.3s;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 50% 50% at 30% 30%,rgba(22,163,74,0.12) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 70% 70%,rgba(220,38,38,0.07) 0%,transparent 50%);
+  pointer-events:none;z-index:0;
+}
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 2rem;
+  background:rgba(8,12,10,0.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+[data-theme="light"] nav{background:rgba(240,253,244,0.8);}
+.logo{
+  font-family:'Sora',sans-serif;font-weight:800;font-size:1.3rem;
+  color:var(--green-light);display:flex;align-items:center;gap:0.5rem;letter-spacing:-0.5px;
+}
+.logo-icon{
+  width:30px;height:30px;background:linear-gradient(135deg,var(--green),var(--green-light));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;
+}
+.nav-right{display:flex;gap:0.75rem;align-items:center;}
+.theme-btn{
+  background:var(--input-bg);border:1px solid var(--border);color:var(--text);
+  width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.theme-btn:hover{background:var(--green);border-color:var(--green);}
+.user-chip{
+  display:flex;align-items:center;gap:0.5rem;
+  background:var(--input-bg);border:1px solid var(--border);
+  border-radius:20px;padding:0.4rem 1rem;font-size:0.85rem;
+}
 
-    :root {
-      --green:       #0f4c2a;
-      --green-mid:   #1a6b3c;
-      --green-light: #e6f4ec;
-      --gold:        #d4a017;
-      --gold-glow:   rgba(212,160,23,0.25);
-      --mpesa:       #00a651;
-      --mpesa-dark:  #008040;
-      --mpesa-glow:  rgba(0,166,81,0.2);
-      --text:        #111;
-      --muted:       #6b7280;
-      --border:      #e2e8f0;
-      --white:       #ffffff;
-      --bg:          #f5f3ee;
-    }
+/* ─── MAIN ─── */
+main{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:6rem 1.5rem 2rem;position:relative;z-index:1;
+}
+.pay-container{width:100%;max-width:480px;}
 
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-      position: relative;
-      overflow-x: hidden;
-    }
+/* Steps indicator */
+.steps{
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:2.5rem;gap:0;
+}
+.step{
+  display:flex;flex-direction:column;align-items:center;gap:0.4rem;
+  position:relative;flex:1;
+}
+.step:not(:last-child)::after{
+  content:'';position:absolute;
+  top:16px;left:60%;right:-40%;
+  height:2px;background:var(--border);
+  transition:background 0.5s;
+}
+.step.done:not(:last-child)::after{background:var(--green);}
+.step-circle{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;font-weight:700;
+  background:var(--input-bg);border:2px solid var(--border);
+  color:var(--muted);transition:all 0.4s;z-index:1;
+}
+.step.active .step-circle{background:var(--green);border-color:var(--green);color:#fff;}
+.step.done .step-circle{background:var(--green-light);border-color:var(--green-light);color:#fff;}
+.step-label{font-size:0.72rem;color:var(--muted);font-weight:500;white-space:nowrap;}
+.step.active .step-label{color:var(--green-light);}
 
-    /* ── Background orbs ── */
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(70px);
-      pointer-events: none;
-      z-index: 0;
-    }
-    body::before {
-      width: 500px; height: 500px;
-      background: rgba(15,76,42,0.1);
-      top: -150px; left: -150px;
-      animation: floatOrb 14s ease-in-out infinite;
-    }
-    body::after {
-      width: 400px; height: 400px;
-      background: rgba(0,166,81,0.08);
-      bottom: -120px; right: -120px;
-      animation: floatOrb 10s ease-in-out infinite reverse;
-    }
-    @keyframes floatOrb {
-      0%,100% { transform: translate(0,0); }
-      50%      { transform: translate(30px,-30px); }
-    }
+/* Pay card */
+.pay-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:24px;padding:2.5rem;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.pay-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--green),var(--green-light),var(--gold));
+}
+.pay-header{text-align:center;margin-bottom:2rem;}
+.price-badge{
+  display:inline-flex;flex-direction:column;align-items:center;
+  background:linear-gradient(135deg,rgba(22,163,74,0.15),rgba(34,197,94,0.08));
+  border:1px solid rgba(22,163,74,0.3);
+  border-radius:20px;padding:1.2rem 2rem;margin-bottom:1rem;
+}
+.price-amount{
+  font-family:'Sora',sans-serif;font-size:2.8rem;font-weight:800;
+  color:var(--green-light);line-height:1;
+}
+.price-unit{font-size:0.85rem;color:var(--muted);margin-top:0.2rem;}
+.pay-header h2{
+  font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:0.5rem;
+}
+.pay-header p{color:var(--muted);font-size:0.9rem;line-height:1.6;}
 
-    /* ── Nav bar ── */
-    .topbar {
-      position: fixed; top: 0; left: 0; right: 0;
-      padding: 1rem 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      z-index: 10;
-      background: rgba(245,243,238,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-    }
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none;
-    }
-    .brand-icon {
-      width: 38px; height: 38px;
-      background: var(--gold);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      box-shadow: 0 4px 14px var(--gold-glow);
-    }
-    .brand-name {
-      font-family: 'Fraunces', serif;
-      color: var(--green); font-size: 1.3rem; font-weight: 900;
-    }
-    .back-btn {
-      font-size: 0.85rem; color: var(--muted);
-      text-decoration: none; font-weight: 500;
-      display: flex; align-items: center; gap: 5px;
-      transition: color 0.2s;
-    }
-    .back-btn:hover { color: var(--green); }
+.field{margin-bottom:1.2rem;}
+.field label{
+  display:block;font-size:0.82rem;color:var(--muted);
+  margin-bottom:0.5rem;font-weight:500;
+}
+.input-wrap{position:relative;}
+.input-wrap span{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:1rem;pointer-events:none;
+}
+.field input{
+  width:100%;padding:0.85rem 1rem 0.85rem 2.8rem;
+  background:var(--input-bg);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:0.95rem;
+  transition:border-color 0.2s,box-shadow 0.2s;outline:none;
+}
+.field input:focus{
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(22,163,74,0.15);
+}
+.field small{
+  display:block;margin-top:0.4rem;
+  font-size:0.78rem;color:var(--muted);
+}
 
-    /* ── Main layout ── */
-    .main {
-      position: relative; z-index: 1;
-      width: 100%; max-width: 480px;
-      margin-top: 80px;
-      animation: slideUp 0.65s cubic-bezier(0.22,1,0.36,1) both;
-    }
-    @keyframes slideUp {
-      from { opacity:0; transform:translateY(36px) scale(0.97); }
-      to   { opacity:1; transform:translateY(0) scale(1); }
-    }
+.btn-pay{
+  width:100%;padding:1rem;
+  background:linear-gradient(135deg,#16a34a,#22c55e);
+  border:none;border-radius:12px;
+  color:#fff;font-family:'Sora',sans-serif;
+  font-size:1rem;font-weight:700;cursor:pointer;
+  transition:all 0.25s;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;gap:0.75rem;
+  min-height:52px;
+}
+.btn-pay:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(22,163,74,0.4);}
+.btn-pay:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
 
-    /* ── Value card ── */
-    .value-card {
-      background: var(--green);
-      border-radius: 20px 20px 0 0;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-    }
-    .value-card::before {
-      content: '';
-      position: absolute;
-      width: 260px; height: 260px;
-      border-radius: 50%;
-      border: 50px solid rgba(255,255,255,0.05);
-      bottom: -80px; right: -60px;
-    }
-    .value-card .dot-grid {
-      position: absolute; inset: 0;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
-      background-size: 22px 22px;
-      pointer-events: none;
-    }
+/* Spinner */
+.spin-ring{
+  width:22px;height:22px;
+  border:3px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 0.7s linear infinite;display:none;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading .spin-ring{display:block;}
+.loading .btn-label{display:none;}
 
-    .value-top {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1.4rem; position: relative; z-index: 1;
-    }
-    .access-label {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.18);
-      color: rgba(255,255,255,0.9);
-      padding: 6px 14px; border-radius: 100px;
-      font-size: 0.82rem; font-weight: 500;
-    }
-    .price-tag {
-      background: var(--gold);
-      color: #fff;
-      padding: 6px 16px; border-radius: 100px;
-      font-size: 0.9rem; font-weight: 700;
-      box-shadow: 0 4px 16px var(--gold-glow);
-      animation: pulseBadge 2.5s ease-in-out infinite;
-    }
-    @keyframes pulseBadge {
-      0%,100% { box-shadow: 0 4px 16px var(--gold-glow); }
-      50%      { box-shadow: 0 4px 28px rgba(212,160,23,0.45); }
-    }
+/* Status section */
+.status-section{
+  display:none;margin-top:1.5rem;
+  border-top:1px solid var(--border);padding-top:1.5rem;
+}
+.status-section.show{display:block;animation:fadeIn 0.4s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 
-    .amount-display { position: relative; z-index: 1; }
-    .amount-display .ksh {
-      font-family: 'Fraunces', serif;
-      font-size: 3.6rem; font-weight: 900;
-      color: #fff; line-height: 1;
-      letter-spacing: -2px;
-    }
-    .amount-display .ksh span {
-      font-size: 1.4rem; font-weight: 400;
-      vertical-align: super; letter-spacing: 0;
-      color: rgba(255,255,255,0.7);
-    }
-    .amount-display .sub {
-      color: rgba(255,255,255,0.55);
-      font-size: 0.85rem; margin-top: 6px; font-weight: 300;
-    }
+.status-card{
+  border-radius:16px;padding:1.5rem;text-align:center;
+  border:1px solid var(--border);
+}
+.status-card.pending{
+  background:rgba(217,119,6,0.08);border-color:rgba(217,119,6,0.25);
+}
+.status-card.paid{
+  background:rgba(22,163,74,0.08);border-color:rgba(22,163,74,0.25);
+}
+.status-card.failed{
+  background:rgba(220,38,38,0.08);border-color:rgba(220,38,38,0.25);
+}
+.status-icon{font-size:2.5rem;margin-bottom:0.75rem;}
+.status-title{
+  font-family:'Sora',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:0.4rem;
+}
+.status-msg{font-size:0.88rem;color:var(--muted);line-height:1.6;}
 
-    .perks {
-      display: flex; gap: 10px; margin-top: 1.4rem;
-      position: relative; z-index: 1;
-      flex-wrap: wrap;
-    }
-    .perk {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: rgba(255,255,255,0.85);
-      padding: 6px 12px; border-radius: 8px;
-      font-size: 0.8rem;
-    }
+/* Pulse animation for pending */
+.pulse-ring{
+  position:relative;display:inline-block;margin-bottom:0.75rem;
+}
+.pulse-ring::before{
+  content:'';position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:60px;height:60px;border-radius:50%;
+  border:2px solid var(--gold);opacity:0;
+  animation:ripple 1.5s ease infinite;
+}
+@keyframes ripple{
+  0%{width:40px;height:40px;opacity:0.8;}
+  100%{width:70px;height:70px;opacity:0;}
+}
+.pulse-emoji{font-size:2.5rem;}
 
-    /* ── Payment card ── */
-    .pay-card {
-      background: var(--white);
-      border-radius: 0 0 20px 20px;
-      padding: 2rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-    }
+.polling-dots{
+  display:inline-flex;gap:4px;align-items:center;margin-left:0.5rem;
+}
+.polling-dots span{
+  width:5px;height:5px;background:var(--gold);
+  border-radius:50%;animation:dot 1.2s infinite;
+}
+.polling-dots span:nth-child(2){animation-delay:0.2s;}
+.polling-dots span:nth-child(3){animation-delay:0.4s;}
+@keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:0.4;}40%{transform:scale(1);opacity:1;}}
 
-    .section-title {
-      font-size: 0.82rem; font-weight: 600;
-      color: var(--muted); letter-spacing: 0.08em;
-      text-transform: uppercase; margin-bottom: 1rem;
-    }
+.timer-bar{
+  width:100%;height:4px;
+  background:var(--input-bg);border-radius:4px;
+  margin-top:0.75rem;overflow:hidden;
+}
+.timer-fill{
+  height:100%;background:var(--gold);border-radius:4px;
+  width:100%;transition:width 1s linear;
+}
 
-    /* Phone input */
-    .phone-wrap {
-      display: flex; align-items: center;
-      border: 2px solid var(--border);
-      border-radius: 12px; overflow: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      margin-bottom: 1.2rem;
-    }
-    .phone-wrap:focus-within {
-      border-color: var(--mpesa);
-      box-shadow: 0 0 0 4px var(--mpesa-glow);
-    }
-    .phone-flag {
-      padding: 12px 14px;
-      background: #f8fafc;
-      border-right: 2px solid var(--border);
-      font-size: 0.9rem; font-weight: 600;
-      color: var(--mpesa);
-      display: flex; align-items: center; gap: 6px;
-      white-space: nowrap; flex-shrink: 0;
-    }
-    .phone-flag .fi { font-size: 1.1rem; }
-    .phone-wrap input {
-      flex: 1; padding: 13px 14px;
-      border: none; outline: none;
-      font-family: 'Outfit', sans-serif;
-      font-size: 1rem; color: var(--text);
-      background: transparent;
-      letter-spacing: 0.04em;
-    }
-    .phone-wrap input::placeholder { color: #c4cdd8; letter-spacing: 0; }
+.btn-secondary{
+  width:100%;margin-top:1rem;
+  padding:0.75rem;
+  background:var(--input-bg);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;
+  cursor:pointer;transition:all 0.2s;
+}
+.btn-secondary:hover{border-color:var(--green);color:var(--green-light);}
 
-    /* M-Pesa trust badge */
-    .mpesa-trust {
-      display: flex; align-items: center; gap: 10px;
-      padding: 11px 14px;
-      background: linear-gradient(135deg, #f0faf4, #e8f9f0);
-      border: 1px solid #b2dfc4;
-      border-radius: 10px;
-      margin-bottom: 1.4rem;
-    }
-    .mpesa-trust .m-icon { font-size: 1.5rem; }
-    .mpesa-trust .m-text { font-size: 0.82rem; color: #15803d; line-height: 1.5; }
-    .mpesa-trust .m-text strong { color: var(--mpesa); font-weight: 700; }
+.alert{
+  padding:0.8rem 1rem;border-radius:10px;
+  font-size:0.87rem;margin-bottom:1rem;font-weight:500;
+  display:none;
+}
+.alert.error{background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:#f87171;}
+.alert.success{background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.3);color:var(--green-light);}
+.alert.show{display:block;animation:fadeIn 0.3s ease;}
 
-    /* Steps */
-    .steps {
-      list-style: none;
-      display: flex; flex-direction: column; gap: 9px;
-      margin-bottom: 1.6rem;
-    }
-    .steps li {
-      display: flex; align-items: flex-start; gap: 10px;
-      font-size: 0.84rem; color: var(--muted);
-    }
-    .step-num {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--green-light); color: var(--green);
-      font-size: 0.72rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; margin-top: 1px;
-    }
+/* Confetti */
+.confetti{
+  position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden;
+}
+.confetti-piece{
+  position:absolute;width:10px;height:10px;
+  border-radius:2px;animation:confettiDrop 3s ease forwards;
+}
+@keyframes confettiDrop{
+  0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
+  100%{transform:translateY(100vh) rotate(720deg);opacity:0;}
+}
 
-    /* Pay button */
-    .btn-pay {
-      width: 100%; padding: 15px;
-      background: var(--mpesa); color: #fff;
-      border: none; border-radius: 12px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 1rem; font-weight: 700;
-      cursor: pointer; letter-spacing: 0.01em;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .btn-pay:hover {
-      background: var(--mpesa-dark);
-      box-shadow: 0 8px 24px var(--mpesa-glow);
-      transform: translateY(-1px);
-    }
-    .btn-pay:active { transform: scale(0.99) translateY(0); }
-    .btn-pay:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
-
-    /* Messages */
-    .msg {
-      padding: 11px 14px; border-radius: 10px;
-      font-size: 0.865rem; margin-bottom: 1rem;
-      display: none; animation: msgPop 0.3s cubic-bezier(0.22,1,0.36,1);
-    }
-    .msg.error   { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
-    .msg.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-    .msg.info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
-    .msg.show    { display: block; }
-    @keyframes msgPop {
-      from { opacity:0; transform:scale(0.95); }
-      to   { opacity:1; transform:scale(1); }
-    }
-
-    /* ── Waiting screen ── */
-    .waiting-screen {
-      display: none; flex-direction: column; align-items: center;
-      text-align: center; padding: 1rem 0 0.5rem;
-      animation: fadeIn 0.4s ease;
-    }
-    .waiting-screen.show { display: flex; }
-    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-
-    .phone-anim {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--green-light), #c8f0d8);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2rem; margin-bottom: 1.2rem;
-      animation: phonePulse 1.5s ease-in-out infinite;
-      box-shadow: 0 0 0 0 var(--mpesa-glow);
-    }
-    @keyframes phonePulse {
-      0%   { box-shadow: 0 0 0 0 rgba(0,166,81,0.35); transform: scale(1); }
-      50%  { box-shadow: 0 0 0 18px rgba(0,166,81,0); transform: scale(1.05); }
-      100% { box-shadow: 0 0 0 0 rgba(0,166,81,0); transform: scale(1); }
-    }
-
-    .waiting-title {
-      font-family: 'Fraunces', serif;
-      font-size: 1.3rem; color: var(--text);
-      margin-bottom: 0.4rem;
-    }
-    .waiting-sub {
-      color: var(--muted); font-size: 0.87rem;
-      line-height: 1.6; margin-bottom: 1rem;
-    }
-
-    .countdown-bar-wrap {
-      width: 100%; background: #f3f4f6;
-      border-radius: 100px; height: 6px;
-      overflow: hidden; margin-bottom: 8px;
-    }
-    .countdown-bar {
-      height: 100%; border-radius: 100px;
-      background: linear-gradient(90deg, var(--mpesa), #34d399);
-      transition: width 1s linear;
-    }
-    .countdown-text {
-      font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem;
-    }
-
-    .cancel-btn {
-      background: none; border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 9px 20px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.85rem; color: var(--muted);
-      cursor: pointer; transition: all 0.2s;
-    }
-    .cancel-btn:hover { border-color: #dc2626; color: #dc2626; }
-
-    /* Spinner */
-    .spinner {
-      display: inline-block; width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Success overlay */
-    .success-overlay {
-      display: none; flex-direction: column; align-items: center;
-      text-align: center; padding: 1rem 0;
-      animation: fadeIn 0.5s ease;
-    }
-    .success-overlay.show { display: flex; }
-    .success-icon {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.2rem; margin-bottom: 1rem;
-      animation: popIn 0.5s cubic-bezier(0.22,1,0.36,1);
-    }
-    @keyframes popIn {
-      from { transform: scale(0.5); opacity: 0; }
-      to   { transform: scale(1);   opacity: 1; }
-    }
-    .success-title {
-      font-family: 'Fraunces', serif;
-      font-size: 1.4rem; color: var(--green);
-      margin-bottom: 0.3rem;
-    }
-    .success-sub { color: var(--muted); font-size: 0.87rem; margin-bottom: 1.2rem; }
-
-    /* Responsive */
-    @media (max-width: 520px) {
-      .pay-card { padding: 1.5rem; }
-      .value-card { padding: 1.5rem; }
-      .amount-display .ksh { font-size: 2.8rem; }
-    }
-  </style>
+@media(max-width:600px){
+  .pay-card{padding:1.5rem;}
+  .price-amount{font-size:2.2rem;}
+  .steps{gap:0;}
+}
+</style>
 </head>
 <body>
 
-<!-- ── Top Bar ── -->
-<div class="topbar">
-  <a href="index.html" class="brand">
-    <div class="brand-icon">📚</div>
-    <span class="brand-name">ElimuPay</span>
-  </a>
-  <a href="index.html" class="back-btn">← Back to login</a>
-</div>
-
-<!-- ── Main ── -->
-<div class="main">
-
-  <!-- Value proposition -->
-  <div class="value-card">
-    <div class="dot-grid"></div>
-    <div class="value-top">
-      <div class="access-label">⏱️ 30-Minute Full Access</div>
-      <div class="price-tag">KSh 10 only</div>
-    </div>
-    <div class="amount-display">
-      <div class="ksh"><span>KSh</span> 10</div>
-      <div class="sub">One-time payment · Instant access · No subscription</div>
-    </div>
-    <div class="perks">
-      <div class="perk">🎬 All videos</div>
-      <div class="perk">📱 M-Pesa secure</div>
-      <div class="perk">⚡ Instant unlock</div>
-    </div>
+<nav>
+  <div class="logo"><div class="logo-icon">📚</div>ElimuPay</div>
+  <div class="nav-right">
+    <div class="user-chip">👤 <span id="navName">Loading...</span></div>
+    <button class="theme-btn" onclick="toggleTheme()">🌙</button>
   </div>
+</nav>
 
-  <!-- Payment form -->
-  <div class="pay-card">
+<main>
+  <div class="pay-container">
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step done"><div class="step-circle">✓</div><div class="step-label">Account</div></div>
+      <div class="step active" id="step2"><div class="step-circle">2</div><div class="step-label">Payment</div></div>
+      <div class="step" id="step3"><div class="step-circle">3</div><div class="step-label">Watch</div></div>
+    </div>
 
-    <!-- PAYMENT FORM STATE -->
-    <div id="form-state">
-      <p class="section-title">Enter M-Pesa number</p>
-
-      <div class="msg" id="pay-msg"></div>
-
-      <div class="phone-wrap">
-        <div class="phone-flag">
-          <span class="fi">🇰🇪</span> +254
+    <div class="pay-card">
+      <div class="pay-header">
+        <div class="price-badge">
+          <div class="price-amount">KES 10</div>
+          <div class="price-unit">30 minutes full access</div>
         </div>
-        <input
-          type="tel"
-          id="phone"
-          placeholder="7XX XXX XXX"
-          maxlength="9"
-          inputmode="numeric"
-        />
+        <h2>Pay via M-Pesa</h2>
+        <p>Enter your Safaricom number below. A prompt will be sent to your phone — enter your M-Pesa PIN to complete payment.</p>
       </div>
 
-      <div class="mpesa-trust">
-        <span class="m-icon">🔒</span>
-        <div class="m-text">
-          Secure payment via <strong>M-Pesa</strong> — you'll receive a push notification on your phone to confirm with your PIN.
+      <div class="alert" id="payAlert"></div>
+
+      <div class="field">
+        <label>Safaricom Phone Number</label>
+        <div class="input-wrap">
+          <span>📱</span>
+          <input type="tel" id="phoneInput" placeholder="2547XXXXXXXX" maxlength="12"/>
         </div>
+        <small>Format: 2547XXXXXXXX (12 digits, starting with 254)</small>
       </div>
 
-      <ul class="steps">
-        <li><div class="step-num">1</div> Click "Pay" — an M-Pesa prompt will appear on your phone</li>
-        <li><div class="step-num">2</div> Enter your M-Pesa PIN to confirm the KSh 10 payment</li>
-        <li><div class="step-num">3</div> You'll be taken to the videos automatically 🎉</li>
-      </ul>
-
-      <button class="btn-pay" id="pay-btn" onclick="initiatePayment()">
-        📱 Pay KSh 10 via M-Pesa
+      <button class="btn-pay" id="payBtn" onclick="initiatePay()">
+        <span class="btn-label">💳 Send M-Pesa Prompt</span>
+        <div class="spin-ring"></div>
       </button>
-    </div>
 
-    <!-- WAITING STATE -->
-    <div class="waiting-screen" id="waiting-state">
-      <div class="phone-anim">📲</div>
-      <div class="waiting-title">Check your phone</div>
-      <p class="waiting-sub">
-        An M-Pesa prompt has been sent to your phone.<br/>
-        Enter your PIN to complete the payment.
-      </p>
-      <div class="countdown-bar-wrap">
-        <div class="countdown-bar" id="countdown-bar" style="width:100%"></div>
+      <!-- Status Section -->
+      <div class="status-section" id="statusSection">
+        <div class="status-card pending" id="statusCard">
+          <div class="pulse-ring"><div class="pulse-emoji">📱</div></div>
+          <div class="status-title">Waiting for Payment<span class="polling-dots"><span></span><span></span><span></span></span></div>
+          <div class="status-msg" id="statusMsg">Check your phone and enter your M-Pesa PIN to complete the KES 10 payment.</div>
+          <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+        </div>
+        <button class="btn-secondary" onclick="cancelPoll()">Cancel / Try Again</button>
       </div>
-      <p class="countdown-text" id="countdown-text">90 seconds remaining</p>
-      <button class="cancel-btn" onclick="cancelPayment()">Cancel</button>
     </div>
-
-    <!-- SUCCESS STATE -->
-    <div class="success-overlay" id="success-state">
-      <div class="success-icon">✅</div>
-      <div class="success-title">Payment Confirmed!</div>
-      <p class="success-sub">Taking you to your videos now…</p>
-      <div class="spinner" style="border-top-color: var(--mpesa); border-color: rgba(0,166,81,0.3);"></div>
-    </div>
-
   </div>
-</div>
+</main>
+
+<div class="confetti" id="confetti"></div>
 
 <script>
-  const API   = 'https://elimu-pay.onrender.com';
-  const token = localStorage.getItem('token');
-  if (!token) window.location.href = 'index.html';
+const API=window.location.origin;
+let pollInterval=null;
+let timerInterval=null;
+let pollSeconds=0;
+const MAX_POLL=120; // 2 minutes
 
-  // ── UI helpers ──
-  function showMsg(type, text) {
-    const el = document.getElementById('pay-msg');
-    el.className = `msg ${type} show`;
-    el.textContent = text;
-  }
-  function clearMsg() {
-    const el = document.getElementById('pay-msg');
-    el.className = 'msg';
-    el.textContent = '';
-  }
+function getToken(){
+  const t=localStorage.getItem('token');
+  if(!t){window.location.href='index.html';return null;}
+  return t;
+}
 
-  function setState(state) {
-    document.getElementById('form-state').style.display    = state === 'form'    ? 'block' : 'none';
-    document.getElementById('waiting-state').classList.toggle('show', state === 'waiting');
-    document.getElementById('success-state').classList.toggle('show', state === 'success');
-  }
+function toggleTheme(){
+  const h=document.documentElement;
+  const d=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',d?'light':'dark');
+  document.querySelector('.theme-btn').textContent=d?'🌙':'☀️';
+}
 
-  function setLoading(loading) {
-    const btn = document.getElementById('pay-btn');
-    btn.disabled  = loading;
-    btn.innerHTML = loading
-      ? '<span class="spinner"></span> Processing…'
-      : '📱 Pay KSh 10 via M-Pesa';
-  }
+function showAlert(msg,type='error'){
+  const el=document.getElementById('payAlert');
+  el.textContent=msg;el.className=`alert ${type} show`;
+}
 
-  // ── Polling state ──
-  let pollInterval = null;
-  let countdownInterval = null;
-  let currentCheckoutId = null;
+function setLoading(loading){
+  const btn=document.getElementById('payBtn');
+  btn.classList.toggle('loading',loading);
+  btn.disabled=loading;
+}
 
-  // ── Initiate payment ──
-  async function initiatePayment() {
-    clearMsg();
-    let phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
-    if (!phone || phone.length < 9) {
-      return showMsg('error', 'Enter a valid Safaricom number (9 digits after +254).');
-    }
-    if (phone.startsWith('0')) phone = phone.slice(1);
-    const fullPhone = '254' + phone;
+async function initiatePay(){
+  const phone=document.getElementById('phoneInput').value.trim();
+  if(!phone) return showAlert('Please enter your phone number.');
+  if(!/^2547\d{8}$/.test(phone)) return showAlert('Enter a valid Safaricom number: 2547XXXXXXXX');
 
-    setLoading(true);
-    showMsg('info', 'Sending M-Pesa push to your phone…');
+  const token=getToken();if(!token)return;
+  document.getElementById('payAlert').className='alert';
+  setLoading(true);
 
-    try {
-      const res = await fetch(`${API}/api/pay/initiate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ phone: fullPhone }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Payment initiation failed');
+  try{
+    const r=await fetch(`${API}/api/pay/initiate`,{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({phone})
+    });
+    const d=await r.json();
+    if(!r.ok) return showAlert(d.error||'Payment failed. Please try again.');
 
-      currentCheckoutId = data.checkoutRequestId;
-      setState('waiting');
-      startPolling(currentCheckoutId);
-
-    } catch (e) {
-      showMsg('error', e.message);
-      setLoading(false);
-    }
-  }
-
-  // ── Countdown + polling ──
-  function startPolling(checkoutRequestId) {
-    const TOTAL = 90;
-    let secondsLeft = TOTAL;
-
-    const bar  = document.getElementById('countdown-bar');
-    const text = document.getElementById('countdown-text');
-
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      const pct = (secondsLeft / TOTAL) * 100;
-      bar.style.width = pct + '%';
-      text.textContent = `${secondsLeft} second${secondsLeft !== 1 ? 's' : ''} remaining`;
-
-      if (secondsLeft <= 0) {
-        stopPolling();
-        setState('form');
-        setLoading(false);
-        showMsg('error', 'Payment timed out. Please try again.');
-      }
-    }, 1000);
-
-    pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/api/pay/status/${checkoutRequestId}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.status === 'paid') {
-          stopPolling();
-          if (data.expiresAt) localStorage.setItem('accessExpiry', data.expiresAt);
-          setState('success');
-          setTimeout(() => window.location.href = 'videos.html', 2000);
-        }
-      } catch { /* network blip — keep polling */ }
-    }, 3000);
-  }
-
-  function stopPolling() {
-    clearInterval(pollInterval);
-    clearInterval(countdownInterval);
-    pollInterval = null;
-    countdownInterval = null;
-  }
-
-  function cancelPayment() {
-    stopPolling();
-    setState('form');
     setLoading(false);
-    clearMsg();
-    // Reset bar
-    document.getElementById('countdown-bar').style.width = '100%';
-    document.getElementById('countdown-text').textContent = '90 seconds remaining';
-  }
+    showStatusSection();
+    startPolling(d.checkoutRequestId);
+  }catch(e){showAlert('Network error. Please try again.');}
+  finally{setLoading(false);}
+}
 
-  // ── Enter key ──
-  document.getElementById('phone').addEventListener('keydown', e => {
-    if (e.key === 'Enter') initiatePayment();
+function showStatusSection(){
+  document.getElementById('statusSection').classList.add('show');
+  document.getElementById('payBtn').style.display='none';
+  document.getElementById('phoneInput').disabled=true;
+}
+
+function startPolling(checkoutRequestId){
+  pollSeconds=0;
+  updateTimerBar();
+
+  timerInterval=setInterval(()=>{
+    pollSeconds++;
+    updateTimerBar();
+    if(pollSeconds>=MAX_POLL){
+      cancelPoll();
+      showAlert('Payment timed out. Please try again.');
+    }
+  },1000);
+
+  pollInterval=setInterval(()=>checkStatus(checkoutRequestId),3000);
+}
+
+function updateTimerBar(){
+  const pct=Math.max(0,100-(pollSeconds/MAX_POLL)*100);
+  document.getElementById('timerFill').style.width=pct+'%';
+}
+
+async function checkStatus(checkoutRequestId){
+  const token=getToken();if(!token)return;
+  try{
+    const r=await fetch(`${API}/api/pay/status/${checkoutRequestId}`,{
+      headers:{Authorization:`Bearer ${token}`}
+    });
+    const d=await r.json();
+    if(!r.ok) return;
+
+    if(d.status==='paid'){
+      clearAll();
+      showSuccess(d.mpesa_ref);
+    } else if(d.status==='failed'){
+      clearAll();
+      showFailed();
+    }
+  }catch(e){}
+}
+
+function clearAll(){
+  clearInterval(pollInterval);
+  clearInterval(timerInterval);
+}
+
+function showSuccess(ref){
+  const card=document.getElementById('statusCard');
+  card.className='status-card paid';
+  card.innerHTML=`
+    <div class="status-icon">🎉</div>
+    <div class="status-title" style="color:var(--green-light)">Payment Successful!</div>
+    <div class="status-msg">M-Pesa Ref: <strong>${ref||'N/A'}</strong><br>You now have 30 minutes of video access. Redirecting...</div>
+  `;
+  document.getElementById('step2').classList.replace('active','done');
+  document.getElementById('step2').querySelector('.step-circle').textContent='✓';
+  document.getElementById('step3').classList.add('active');
+  spawnConfetti();
+  setTimeout(()=>window.location.href='videos.html',2500);
+}
+
+function showFailed(){
+  const card=document.getElementById('statusCard');
+  card.className='status-card failed';
+  card.innerHTML=`
+    <div class="status-icon">❌</div>
+    <div class="status-title" style="color:#f87171">Payment Failed</div>
+    <div class="status-msg">The payment was cancelled or failed. Please try again.</div>
+  `;
+}
+
+function cancelPoll(){
+  clearAll();
+  document.getElementById('statusSection').classList.remove('show');
+  document.getElementById('payBtn').style.display='flex';
+  document.getElementById('phoneInput').disabled=false;
+  pollSeconds=0;
+}
+
+function spawnConfetti(){
+  const colors=['#16a34a','#22c55e','#d97706','#dc2626','#fff'];
+  const container=document.getElementById('confetti');
+  for(let i=0;i<60;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.cssText=`
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random()*1}s;
+      animation-duration:${2+Math.random()*2}s;
+      width:${6+Math.random()*10}px;
+      height:${6+Math.random()*10}px;
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+    `;
+    container.appendChild(p);
+    setTimeout(()=>p.remove(),4000);
+  }
+}
+
+// Init
+(()=>{
+  const token=localStorage.getItem('token');
+  if(!token){window.location.href='index.html';return;}
+  const name=localStorage.getItem('name')||'User';
+  document.getElementById('navName').textContent=name;
+  // Pre-fill phone if stored
+  const savedPhone=localStorage.getItem('phone');
+  if(savedPhone) document.getElementById('phoneInput').value=savedPhone;
+  // Save phone on input
+  document.getElementById('phoneInput').addEventListener('input',e=>{
+    localStorage.setItem('phone',e.target.value);
   });
+})();
 </script>
 </body>
 </html>
