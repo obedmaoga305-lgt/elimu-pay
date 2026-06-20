@@ -31,5 +31,91 @@ app.get('/api/videos', async (req, res) => {
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
 
+const app = express();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+app.use(express.json());
+app.use(cors());
+
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+
+/* =========================
+   VIDEOS
+========================= */
+app.get('/api/videos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load videos'
+    });
+  }
+});
+
+/* =========================
+   ADMIN LOGIN
+========================= */
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password required'
+      });
+    }
+
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+    if (password === ADMIN_PASSWORD) {
+      return res.json({
+        success: true,
+        message: 'Login successful'
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid password'
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+/* =========================
+   START SERVER
+========================= */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 app.listen(3000, () => console.log('Server running on http://localhost:3000'));
