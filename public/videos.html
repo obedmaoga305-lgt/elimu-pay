@@ -382,9 +382,7 @@ const res = await fetch('/api/videos', {
           </div>
         </div>
       `).join('');
-
-      // Record views (fire and forget)
-      //
+      
 
    function openVideo(id, title, url, subject, duration) {
   fetch(`/api/videos/${id}/view`, { method: 'POST' }).catch(() => {});
