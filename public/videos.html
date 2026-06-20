@@ -3,8 +3,7 @@
     try {
       // Direct public fetch, no auth headers required
       const res = await fetch('/api/videos');
-      const data = await res.json();
-      const videos = data.videos || [];
+const videos = await res.json();
 
       // Update UI
       document.getElementById('statVideos').textContent = videos.length;
