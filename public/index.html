@@ -15,28 +15,13 @@
     html, body { background: var(--dark); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
 
     nav {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: flex-start;
       padding: 24px 60px; position: relative; z-index: 10;
     }
     .logo {
       font-family: 'Playfair Display', serif; font-size: 22px; color: var(--text);
     }
     .logo span { color: var(--gold); }
-    .nav-btns { display: flex; gap: 12px; }
-    .btn-outline {
-      font-size: 13px; padding: 9px 20px; background: none;
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
-      color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
-      text-decoration: none; transition: all 0.2s;
-    }
-    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
-    .btn-gold {
-      font-size: 13px; padding: 9px 20px;
-      background: linear-gradient(135deg, var(--gold), #a87c28);
-      border: none; border-radius: 8px; color: #0d0d0d;
-      font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
-      text-decoration: none; letter-spacing: 0.5px;
-    }
 
     /* HERO */
     .hero {
@@ -69,13 +54,6 @@
       text-decoration: none; letter-spacing: 0.5px; transition: opacity 0.2s;
     }
     .cta-primary:hover { opacity: 0.9; }
-    .cta-secondary {
-      font-size: 15px; padding: 14px 32px; background: none;
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
-      color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
-      text-decoration: none; transition: all 0.2s;
-    }
-    .cta-secondary:hover { border-color: var(--gold); color: var(--gold); }
 
     /* STORY CARD */
     .story-card {
@@ -152,10 +130,6 @@
 
   <nav>
     <div class="logo">Elimu<span>Free</span></div>
-    <div class="nav-btns">
-      <a href="/login.html" class="btn-outline">Sign In</a>
-      <a href="/register.html" class="btn-gold">Join Free</a>
-    </div>
   </nav>
 
   <div class="hero">
@@ -164,11 +138,10 @@
       <h1>World-Class<br/>Education.<br/><em>Zero Cost.</em></h1>
       <p class="hero-sub">
         A billionaire philanthropist's gift to every student in Kenya and beyond. 
-        No fees. No sign-up friction. Just knowledge — free and unlimited.
+        No fees. No sign-up. Just knowledge — free and unlimited for everyone.
       </p>
       <div class="hero-cta">
-        <a href="/register.html" class="cta-primary">Start Learning Free →</a>
-        <a href="/login.html" class="cta-secondary">I have an account</a>
+        <a href="/videos.html" class="cta-primary">Start Learning Now →</a>
       </div>
     </div>
 
@@ -198,9 +171,9 @@
         <div class="feature-desc">No payment, no subscription, no hidden fee. Every video is fully funded by our founder so you pay nothing.</div>
       </div>
       <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <div class="feature-title">No Email Required</div>
-        <div class="feature-desc">Just pick a username and a password. We don't ask for your email or any personal information.</div>
+        <div class="feature-icon">🔓</div>
+        <div class="feature-title">Open Access</div>
+        <div class="feature-desc">No sign-up or accounts required. Just click and learn immediately, from anywhere at any time.</div>
       </div>
       <div class="feature">
         <div class="feature-icon">📺</div>
@@ -229,11 +202,5 @@
     © 2025 <span>ElimuFree Education</span> · Fully funded by our philanthropist founder · Free forever
   </footer>
 
-  <script>
-    // If already logged in, go straight to videos
-    if (localStorage.getItem('token')) {
-      window.location.href = '/videos.html';
-    }
-  </script>
 </body>
 </html>
