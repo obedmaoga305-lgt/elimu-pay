@@ -302,9 +302,12 @@
 
     async function loadVideos() {
       try {
-        const res = await fetch('/api/videos');
+        const token = localStorage.getItem('token');
+const res = await fetch('/api/videos', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
         const data = await res.json();
-        allVideos = data.videos || [];
+        allVideos = Array.isArray(data) ? data : (data.videos || data.data || []);
 
         // Update stat
         document.getElementById('statVideos').textContent = allVideos.length;
@@ -378,9 +381,12 @@
       `).join('');
 
       // Record views (fire and forget)
-      videos.forEach(v => {
-        fetch(`/api/videos/${v.id}/view`, { method: 'POST' }).catch(() => {});
-      });
+      function openVideo(id, title, url, subject, duration) {
+  fetch(`/api/videos/${id}/view`, { method: 'POST' }).catch(() => {}); // ← add this line
+  document.getElementById('modalTitle').textContent = decodeURIComponent(title);
+  // ... rest of the function stays the same
+        
+      
     }
 
     function openVideo(id, title, url, subject, duration) {
