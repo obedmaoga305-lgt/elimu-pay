@@ -573,8 +573,8 @@ app.get('/api/videos', verifyToken, async (req, res) => {
     const { subject, grade } = req.query;
     let query = supabase
       .from('videos')
-      .select('id, title, description, url, thumbnail, subject, grade, duration, views')
-      .eq('is_active', true)
+      .select('id, title, description, url, subject, grade')
+      .or('is_active.eq.true,is_active.is.null')
       .order('created_at', { ascending: false });
 
     if (subject) query = query.eq('subject', subject);
