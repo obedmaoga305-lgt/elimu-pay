@@ -35,13 +35,14 @@
     .nav-right { display: flex; align-items: center; gap: 20px; }
     .nav-user { font-size: 14px; color: var(--muted); }
     .nav-user strong { color: var(--gold-light); }
-    .btn-logout {
+    .btn-auth {
       font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
       color: var(--muted); background: none; border: 1px solid var(--border);
       border-radius: 6px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif;
       transition: color 0.2s, border-color 0.2s;
+      text-decoration: none;
     }
-    .btn-logout:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .btn-auth:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
     /* HERO */
     .hero {
@@ -232,7 +233,7 @@
     <a href="/videos.html" class="nav-logo">Elimu<span>Free</span></a>
     <div class="nav-right">
       <div class="nav-user" id="navUser"></div>
-      <button class="btn-logout" onclick="logout()">Sign Out</button>
+      <div id="authButtons"></div>
     </div>
   </nav>
 
@@ -270,7 +271,6 @@
     </div>
   </div>
 
-  <!-- Video Modal -->
   <div class="modal-overlay" id="modal" onclick="closeModal(event)">
     <div class="modal">
       <div class="modal-header">
@@ -291,24 +291,27 @@
     let allVideos = [];
     let activeFilter = 'all';
 
-    // Set username in nav
+    // UI Updates for logged in/out users
     const username = localStorage.getItem('username');
+    const authButtons = document.getElementById('authButtons');
+    
     if (username) {
       document.getElementById('navUser').innerHTML = `Hello, <strong>${username}</strong>`;
+      authButtons.innerHTML = `<button class="btn-auth" onclick="logout()">Sign Out</button>`;
+    } else {
+      authButtons.innerHTML = `<a href="/login.html" class="btn-auth">Login / Register</a>`;
     }
 
     function logout() {
       localStorage.removeItem('token');
       localStorage.removeItem('username');
-      window.location.href = '/login.html';
+      window.location.reload();
     }
 
     async function loadVideos() {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/videos', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // We no longer require a token since the backend is open
+        const res = await fetch('/api/videos');
         const data = await res.json();
         allVideos = Array.isArray(data) ? data : (data.videos || data.data || []);
 
@@ -390,7 +393,9 @@
     }
 
     function openVideo(id, title, url, subject, duration) {
+      // Record a view (no token needed anymore)
       fetch(`/api/videos/${id}/view`, { method: 'POST' }).catch(() => {});
+      
       document.getElementById('modalTitle').textContent = decodeURIComponent(title);
       document.getElementById('modalIframe').src = toEmbedUrl(url);
       document.getElementById('modalSubject').textContent = subject || 'Lesson';
