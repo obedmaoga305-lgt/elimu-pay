@@ -1,66 +1,106 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Learning Videos</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+#videoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.video-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.video-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.video-info {
+    padding: 15px;
+}
+
+.video-info h3 {
+    margin: 0 0 10px;
+}
+
+.video-info a {
+    display: inline-block;
+    padding: 10px 15px;
+    background: #2563eb;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Free Learning Videos</h1>
+
+<p>Total Videos: <span id="statVideos">0</span></p>
+
+<div id="videoGrid"></div>
+
 <script>
 async function loadVideos() {
-  try {
-    const res = await fetch('/api/videos');
+    try {
+        const res = await fetch('/api/videos');
+        const videos = await res.json();
 
-    if (!res.ok) {
-      throw new Error(`HTTP error! Status: ${res.status}`);
+        document.getElementById('statVideos').textContent = videos.length;
+
+        const grid = document.getElementById('videoGrid');
+
+        if (!videos.length) {
+            grid.innerHTML = '<p>No videos available.</p>';
+            return;
+        }
+
+        grid.innerHTML = videos.map(v => `
+            <div class="video-card">
+                <img src="${v.thumbnail || 'https://via.placeholder.com/640x360'}" alt="${v.title}">
+                <div class="video-info">
+                    <h3>${v.title}</h3>
+                    <p>${v.subject || ''}</p>
+                    <a href="${v.url}" target="_blank">Watch Video</a>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('videoGrid').innerHTML =
+            '<p>Failed to load videos.</p>';
     }
-
-    const videos = await res.json();
-
-    // Update video count if element exists
-    const statVideos = document.getElementById('statVideos');
-    if (statVideos) {
-      statVideos.textContent = videos.length;
-    }
-
-    renderVideos(videos);
-
-  } catch (error) {
-    console.error('Load error:', error);
-
-    const grid = document.getElementById('videoGrid');
-    if (grid) {
-      grid.innerHTML =
-        '<div style="padding:20px;color:red;">Failed to load videos.</div>';
-    }
-  }
 }
 
-function renderVideos(videos) {
-  const grid = document.getElementById('videoGrid');
-
-  if (!grid) {
-    console.error('videoGrid element not found');
-    return;
-  }
-
-  if (!videos || videos.length === 0) {
-    grid.innerHTML =
-      '<div class="empty">No lessons available.</div>';
-    return;
-  }
-
-  grid.innerHTML = videos.map(v => `
-    <div class="video-card">
-      <div class="video-thumb">
-        <img
-          src="${v.thumbnail || 'https://via.placeholder.com/640x360'}"
-          alt="${v.title}">
-      </div>
-
-      <div class="video-info">
-        <h3>${v.title}</h3>
-        <p>${v.subject || 'Lesson'}</p>
-
-        <a href="${v.url}" target="_blank">
-          Watch Video
-        </a>
-      </div>
-    </div>
-  `).join('');
-}
-
-document.addEventListener('DOMContentLoaded', loadVideos);
+loadVideos();
 </script>
+
+</body>
+</html>
