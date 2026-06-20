@@ -45,7 +45,9 @@ app.get('/api/videos', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-
+app.get('/api/admin/login', (req, res) => {
+  res.send('LOGIN ROUTE EXISTS');
+});
     res.json(data);
   } catch (error) {
     console.error('Videos Error:', error);
