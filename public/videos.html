@@ -384,27 +384,23 @@ const res = await fetch('/api/videos', {
       `).join('');
 
       // Record views (fire and forget)
-      function openVideo(id, title, url, subject, duration) {
-  fetch(`/api/videos/${id}/view`, { method: 'POST' }).catch(() => {}); // ← add this line
-  document.getElementById('modalTitle').textContent = decodeURIComponent(title);
-  // ... rest of the function stays the same
-        
-      
-    }
+      //
 
-    function openVideo(id, title, url, subject, duration) {
-      document.getElementById('modalTitle').textContent = decodeURIComponent(title);
-      // Convert YouTube watch URL to embed URL
-function toEmbedUrl(url) {
-  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+   function openVideo(id, title, url, subject, duration) {
+  fetch(`/api/videos/${id}/view`, { method: 'POST' }).catch(() => {});
+  document.getElementById('modalTitle').textContent = decodeURIComponent(title);
+
+  function toEmbedUrl(url) {
+    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+  }
+
+  document.getElementById('modalIframe').src = toEmbedUrl(url);
+  document.getElementById('modalSubject').textContent = subject || 'Lesson';
+  document.getElementById('modalDuration').textContent = duration ? `${duration} minutes` : '';
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
-document.getElementById('modalIframe').src = toEmbedUrl(url);
-      document.getElementById('modalSubject').textContent = subject || 'Lesson';
-      document.getElementById('modalDuration').textContent = duration ? `${duration} minutes` : '';
-      document.getElementById('modal').classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
 
     function closeModalDirect() {
       document.getElementById('modal').classList.remove('open');
