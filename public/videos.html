@@ -1,142 +1,144 @@
 <!DOCTYPE html>
-
 <html lang="en">
-<head><style>
-#videoGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 30px;
-    padding: 20px;
-}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Learning Videos</title>
 
-.video-card {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-.video-card img {
-    width: 100%;
-    height: 300px;
-    object-fit: cover;
-    display: block;
-}
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 25px 20px;
+        }
 
-.video-info {
-    padding: 25px;
-}
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
 
-.video-info h3 {
-    margin-top: 15px;
-    margin-bottom: 15px;
-    font-size: 28px;
-}
+        .stat-counter {
+            text-align: center;
+            font-size: 18px;
+            color: #64748b;
+            margin-bottom: 40px;
+        }
 
-.video-info p {
-    margin-bottom: 20px;
-    font-size: 18px;
-}
-</style>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Free Learning Videos</title>
+        #videoGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-<style>.video-info {
-    padding: 30px 20px 20px 20px;
-}
-    
+        .video-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+        }
 
+        .video-card img {
+            width: 100%;
+            height: auto;         /* Allows the image to display its full natural height */
+            max-height: 380px;    /* Safety limit so super-tall mobile screenshots don't take over the screen */
+            object-fit: contain;  /* Guarantees 100% of the image pixels remain visible */
+            background: #000;     /* Gives it a clean, professional video-player backdrop */
+            display: block;
+        }
 
-h1 {
-    text-align: center;
-}
+        .video-info {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;         /* Forces the 'Watch Video' button to sit at the exact bottom of every card */
+        }
 
-#videoGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
+        .video-info h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            color: #0f172a;
+        }
 
-.video-card {
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+        .video-info p {
+            font-size: 16px;
+            color: #475569;
+            margin-bottom: 24px;
+        }
 
-.video-card img {
-    width: 100%;
-    height: 500px;
-    object-fit: contain;
-    display: block;
-}
+        .video-info a {
+            align-self: flex-start;
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
 
-
-.video-info {
-    padding: 15px;
-}
-
-.video-info h3 {
-    margin: 0 0 10px;
-}
-
-.video-info a {
-    display: inline-block;
-    padding: 10px 15px;
-    background: #2563eb;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-}
-</style>
-
+        .video-info a:hover {
+            background: #1d4ed8;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>Free Learning Videos</h1>
+    <h1>Free Learning Videos</h1>
+    <div class="stat-counter">Total Videos: <span id="statVideos">0</span></div>
 
-<p>Total Videos: <span id="statVideos">0</span></p>
+    <div id="videoGrid"></div>
 
-<div id="videoGrid"></div>
+    <script>
+    async function loadVideos() {
+        try {
+            const res = await fetch('/api/videos');
+            const videos = await res.json();
 
-<script>
-async function loadVideos() {
-    try {
-        const res = await fetch('/api/videos');
-        const videos = await res.json();
+            document.getElementById('statVideos').textContent = videos.length;
+            const grid = document.getElementById('videoGrid');
 
-        document.getElementById('statVideos').textContent = videos.length;
+            if (!videos.length) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">No videos available.</p>';
+                return;
+            }
 
-        const grid = document.getElementById('videoGrid');
-
-        if (!videos.length) {
-            grid.innerHTML = '<p>No videos available.</p>';
-            return;
-        }
-
-        grid.innerHTML = videos.map(v => `
-            <div class="video-card">
-                <img src="${v.thumbnail || 'https://via.placeholder.com/640x360'}" alt="${v.title}">
-                <div class="video-info">
-                    <h3>${v.title}</h3>
-                    <p>${v.subject || ''}</p>
-                    <a href="${v.url}" target="_blank">Watch Video</a>
+            grid.innerHTML = videos.map(v => `
+                <div class="video-card">
+                    <img src="${v.thumbnail || 'https://via.placeholder.com/640x360'}" alt="${v.title}">
+                    <div class="video-info">
+                        <div>
+                            <h3>${v.title}</h3>
+                            <p>${v.subject || ''}</p>
+                        </div>
+                        <a href="${v.url}" target="_blank">Watch Video</a>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
 
-    } catch (err) {
-        console.error(err);
-        document.getElementById('videoGrid').innerHTML =
-            '<p>Failed to load videos.</p>';
+        } catch (err) {
+            console.error(err);
+            document.getElementById('videoGrid').innerHTML =
+                '<p style="grid-column: 1/-1; text-align:center; color: #ef4444;">Failed to load videos.</p>';
+        }
     }
-}
 
-loadVideos();
-</script>
+    loadVideos();
+    </script>
 
 </body>
 </html>
