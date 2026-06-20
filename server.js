@@ -124,4 +124,24 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({
+      error: 'Password required'
+    });
+  }
+
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({
+      error: 'Invalid password'
+    });
+  }
+
+  res.json({
+    success: true,
+    token: 'admin-token'
+  });
+});
 app.listen(3000, () => console.log('Server running on http://localhost:3000'));
