@@ -30,6 +30,12 @@ app.get('/api/videos', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to load videos' });
   }
+  app.post('/api/admin/login', (req, res) => {
+  res.json({
+    success: true,
+    token: 'test-token'
+  });
+});
 });
 require('dotenv').config();
 const express = require('express');
