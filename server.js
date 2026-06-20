@@ -1,4 +1,4 @@
-// ElimuFree — Backend Server
+// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -6,37 +6,30 @@ const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 
 const app = express();
+// Ensure your .env file has SUPABASE_URL and SUPABASE_SERVICE_KEY
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 app.use(express.json());
 app.use(cors());
 
-// Public Route: Fetch all active videos
+// 1. Static Files: Make sure this points to your 'public' folder correctly
+const publicPath = path.join(__dirname, 'public');
+console.log("Serving static files from:", publicPath);
+app.use(express.static(publicPath));
+
+// 2. Public API Route
 app.get('/api/videos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('videos')
       .select('*')
-      .or('is_active.eq.true,is_active.is.null')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json({ videos: data });
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
 
-// View counter route
-app.post('/api/videos/:id/view', async (req, res) => {
-  try {
-    const { data: video } = await supabase.from('videos').select('views').eq('id', req.params.id).single();
-    if (video) {
-      await supabase.from('videos').update({ views: (video.views || 0) + 1 }).eq('id', req.params.id);
-    }
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: 'Failed to record' }); }
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
 app.listen(3000, () => console.log('Server running on http://localhost:3000'));
