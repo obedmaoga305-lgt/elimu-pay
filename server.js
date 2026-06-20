@@ -562,18 +562,13 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
 //  ROUTES — VIDEOS
 // ═══════════════════════════════════════════════════════
 
-// GET /api/videos  (requires paid access)
+// GET /api/videos  (free for all logged-in users)
 app.get('/api/videos', verifyToken, async (req, res) => {
   try {
-    const access = await checkUserAccess(req.user.userId);
-    if (!access.hasAccess) {
-      return res.status(403).json({ error: 'Payment required to access videos', code: 'NO_ACCESS' });
-    }
-
     const { subject, grade } = req.query;
     let query = supabase
       .from('videos')
-      .select('id, title, description, url as video_url, thumbnail as thumbnail_url, subject, grade, duration as duration_minutes')
+      .select('id, title, description, url, thumbnail, subject, grade, duration')
       .or('is_active.eq.true,is_active.is.null')
       .order('created_at', { ascending: false });
 
@@ -583,19 +578,20 @@ app.get('/api/videos', verifyToken, async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    res.json({ videos: data, expiresAt: access.expiresAt });
+    res.json({ videos: data });
   } catch (err) {
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
-
 // POST /api/videos/:id/view
 app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
   try {
     const access = await checkUserAccess(req.user.userId);
     if (!access.hasAccess) return res.status(403).json({ error: 'No access', code: 'NO_ACCESS' });
 
-    // Increment views
+    // POST /api/videos/:id/view
+app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
+  try {
     const { data: video } = await supabase
       .from('videos')
       .select('views')
@@ -614,12 +610,6 @@ app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to record view' });
   }
 });
-
-// ═══════════════════════════════════════════════════════
-//  ROUTES — ADMIN
-// ═══════════════════════════════════════════════════════
-
-// POST /api/admin/login
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { password } = req.body;
