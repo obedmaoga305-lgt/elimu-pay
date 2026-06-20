@@ -6,7 +6,10 @@
 const videos = await res.json();
 
       // Update UI
-      document.getElementById('statVideos').textContent = videos.length;
+      const statVideos = document.getElementById('statVideos');
+if (statVideos) {
+  statVideos.textContent = videos.length;
+}
       renderVideos(videos);
     } catch (e) {
       console.error("Load error:", e);
