@@ -292,7 +292,7 @@ app.post('/api/register', async (req, res) => {
       subject: '🎓 Welcome to ElimuPay!',
       html: emailTemplate({
         title: `Welcome, ${name}! 🎉`,
-        body: `<p style="color:#374151;line-height:1.6">Your ElimuPay account has been created successfully. Pay just <strong>KES 10</strong> via M-Pesa to start watching educational videos.</p>`,
+        body: `<p style="color:#374151;line-height:1.6">Your ElimuPay account has been created successfully.</p>`,
         btnText: 'Start Learning →',
         btnUrl: process.env.BACKEND_URL,
       }),
@@ -559,11 +559,11 @@ app.get('/api/pay/status/:checkoutRequestId', verifyToken, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-//  ROUTES — VIDEOS
+//  ROUTES — VIDEOS (NOW COMPLETELY FREE & PUBLIC)
 // ═══════════════════════════════════════════════════════
 
-// GET /api/videos  (free for all logged-in users)
-app.get('/api/videos', verifyToken, async (req, res) => {
+// GET /api/videos (Public access — no token required)
+app.get('/api/videos', async (req, res) => {
   try {
     const { subject, grade } = req.query;
     let query = supabase
@@ -583,14 +583,9 @@ app.get('/api/videos', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
-// POST /api/videos/:id/view
-app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
-  try {
-    const access = await checkUserAccess(req.user.userId);
-    if (!access.hasAccess) return res.status(403).json({ error: 'No access', code: 'NO_ACCESS' });
 
-    // POST /api/videos/:id/view
-app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
+// POST /api/videos/:id/view (Public access — no token or payment required)
+app.post('/api/videos/:id/view', async (req, res) => {
   try {
     const { data: video } = await supabase
       .from('videos')
@@ -610,6 +605,11 @@ app.post('/api/videos/:id/view', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to record view' });
   }
 });
+
+// ═══════════════════════════════════════════════════════
+//  ROUTES — ADMIN
+// ═══════════════════════════════════════════════════════
+
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { password } = req.body;
