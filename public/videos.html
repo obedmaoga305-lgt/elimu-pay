@@ -363,32 +363,40 @@
         return;
       }
 
-      grid.innerHTML = videos.map(v => `
-        <div class="video-card" onclick="openVideo('${v.id}', '${encodeURIComponent(v.title)}', '${v.url}', '${v.subject || ''}', ${v.duration || 0})">
-          <div class="video-thumb">
-            <img src="${v.thumbnail || `https://placehold.co/640x360/1a1a2e/c9a84c?text=${encodeURIComponent(v.subject || 'Lesson')}`}"
-                 alt="${v.title}" loading="lazy" onerror="this.src='https://placehold.co/640x360/141414/444?text=Video'"/>
-            <div class="play-overlay">
-              <div class="play-btn">
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      grid.innerHTML = videos.map(v => {
+        // Safely escape any stray quotes from properties to prevent broken string HTML fragments
+        const safeTitle = (v.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeUrl = (v.url || '');
+        const safeSubject = (v.subject || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeDuration = v.duration || 0;
+
+        return `
+          <div class="video-card" onclick="openVideo('${v.id}', '${encodeURIComponent(safeTitle)}', '${safeUrl}', '${safeSubject}', ${safeDuration})">
+            <div class="video-thumb">
+              <img src="${v.thumbnail || `https://placehold.co/640x360/1a1a2e/c9a84c?text=${encodeURIComponent(v.subject || 'Lesson')}`}"
+                   alt="${v.title}" loading="lazy" onerror="this.src='https://placehold.co/640x360/141414/444?text=Video'"/>
+              <div class="play-overlay">
+                <div class="play-btn">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+              </div>
+              ${v.subject ? `<span class="subject-chip">${v.subject}</span>` : ''}
+              <span class="free-chip">FREE</span>
+            </div>
+            <div class="video-info">
+              <div class="video-title">${v.title}</div>
+              ${v.description ? `<div class="video-desc">${v.description.substring(0, 100)}${v.description.length > 100 ? '…' : ''}</div>` : ''}
+              <div class="video-meta">
+                ${v.duration ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${v.duration} min` : ''}
               </div>
             </div>
-            ${v.subject ? `<span class="subject-chip">${v.subject}</span>` : ''}
-            <span class="free-chip">FREE</span>
           </div>
-          <div class="video-info">
-            <div class="video-title">${v.title}</div>
-            ${v.description ? `<div class="video-desc">${v.description.substring(0, 100)}${v.description.length > 100 ? '…' : ''}</div>` : ''}
-            <div class="video-meta">
-              ${v.duration ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${v.duration} min` : ''}
-            </div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function toEmbedUrl(url) {
-      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      const match = url.match(/(?:v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);
       return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
     }
 
