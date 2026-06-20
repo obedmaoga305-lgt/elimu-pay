@@ -1,40 +1,66 @@
 <script>
-  async function loadVideos() {
-    try {
-      // Direct public fetch, no auth headers required
-      const res = await fetch('/api/videos');
-const videos = await res.json();
+async function loadVideos() {
+  try {
+    const res = await fetch('/api/videos');
 
-      // Update UI
-      const statVideos = document.getElementById('statVideos');
-if (statVideos) {
-  statVideos.textContent = videos.length;
-}
-      renderVideos(videos);
-    } catch (e) {
-      console.error("Load error:", e);
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`);
     }
-  }
 
-  function renderVideos(videos) {
+    const videos = await res.json();
+
+    // Update video count if element exists
+    const statVideos = document.getElementById('statVideos');
+    if (statVideos) {
+      statVideos.textContent = videos.length;
+    }
+
+    renderVideos(videos);
+
+  } catch (error) {
+    console.error('Load error:', error);
+
     const grid = document.getElementById('videoGrid');
-    if (!videos.length) {
-      grid.innerHTML = '<div class="empty">No lessons available.</div>';
-      return;
+    if (grid) {
+      grid.innerHTML =
+        '<div style="padding:20px;color:red;">Failed to load videos.</div>';
     }
+  }
+}
 
-    grid.innerHTML = videos.map(v => `
-      <div class="video-card" onclick="openVideo('${v.id}', '${encodeURIComponent(v.title)}', '${v.url}', '${v.subject || ''}', '${v.duration || 0}')">
-        <div class="video-thumb">
-          <img src="${v.thumbnail || 'https://via.placeholder.com/640x360'}" alt="${v.title}">
-          <span class="subject-chip">${v.subject || 'Lesson'}</span>
-        </div>
-        <div class="video-info">
-          <h3>${v.title}</h3>
-        </div>
-      </div>
-    `).join('');
+function renderVideos(videos) {
+  const grid = document.getElementById('videoGrid');
+
+  if (!grid) {
+    console.error('videoGrid element not found');
+    return;
   }
 
-  loadVideos();
+  if (!videos || videos.length === 0) {
+    grid.innerHTML =
+      '<div class="empty">No lessons available.</div>';
+    return;
+  }
+
+  grid.innerHTML = videos.map(v => `
+    <div class="video-card">
+      <div class="video-thumb">
+        <img
+          src="${v.thumbnail || 'https://via.placeholder.com/640x360'}"
+          alt="${v.title}">
+      </div>
+
+      <div class="video-info">
+        <h3>${v.title}</h3>
+        <p>${v.subject || 'Lesson'}</p>
+
+        <a href="${v.url}" target="_blank">
+          Watch Video
+        </a>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadVideos);
 </script>
