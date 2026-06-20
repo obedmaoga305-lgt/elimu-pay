@@ -303,7 +303,7 @@
     async function loadVideos() {
       try {
         const token = localStorage.getItem('token');
-const token = localStorage.getItem('token');
+
 const res = await fetch('/api/videos', {
   headers: { 'Authorization': `Bearer ${token}` }
 });
