@@ -391,7 +391,12 @@ const res = await fetch('/api/videos', {
 
     function openVideo(id, title, url, subject, duration) {
       document.getElementById('modalTitle').textContent = decodeURIComponent(title);
-      document.getElementById('modalIframe').src = url;
+      // Convert YouTube watch URL to embed URL
+function toEmbedUrl(url) {
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+}
+document.getElementById('modalIframe').src = toEmbedUrl(url);
       document.getElementById('modalSubject').textContent = subject || 'Lesson';
       document.getElementById('modalDuration').textContent = duration ? `${duration} minutes` : '';
       document.getElementById('modal').classList.add('open');
