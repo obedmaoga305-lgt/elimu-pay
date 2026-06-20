@@ -1,5 +1,7 @@
 require('dotenv').config();
-
+app.get('/test', (req, res) => {
+  res.send('TEST ROUTE WORKS');
+});
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
